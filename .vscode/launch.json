@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Debug bst_st",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/out/test_st",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/out",
+            "environment": [],
+            "externalConsole": false,
+            "filterStdout": true,
+            "MIMode": "gdb",
+            "preLaunchTask": "compile_bst_st",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

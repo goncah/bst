@@ -1,0 +1,12 @@
+{
+    "editor.rulers": [
+      80
+    ],
+    "editor.tabCompletion": "on",
+    "editor.tabSize": 4,
+    "editor.trimAutoWhitespace": true,
+    "editor.formatOnSave": true,
+    "editor.bracketPairColorization.enabled": true,
+    "editor.guides.bracketPairs": true,
+    "C_Cpp.errorSquiggles": "enabled"
+  }

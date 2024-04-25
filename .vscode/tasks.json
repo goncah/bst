@@ -1,0 +1,18 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "compile_bst_st",
+            "type": "shell",
+            "command": "gcc -Wall -Wextra -std=gnu2x test_st.c -o out/test_st",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
