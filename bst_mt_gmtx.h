@@ -1,9 +1,9 @@
 /*
 Universidade Aberta
-File: bst_st.h
+File: bst_mt_gmtx.h
 Author: Hugo Gonçalves, 2100562
 
-Single-thread BST
+Multi-thread BST using global mutex
 
 MIT License
 
@@ -27,23 +27,29 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
-#ifndef __bst_st__
-#define __bst_st__
+#ifndef __bst_mt_gmtx__
+#define __bst_mt_gmtx__
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "bst_common.h"
 
-typedef struct bst_st {
+typedef struct bst_mt_gmtx {
+    pthread_mutex_t mtx;
     long count;
     bst_node *root;
-} bst_st;
+} bst_mt_gmtx;
 
-bst_st *bst_st_new() {
-    bst_st *bst = (bst_st *)malloc(sizeof *bst);
+bst_mt_gmtx *bst_mt_gmtx_new() {
+    bst_mt_gmtx *bst = (bst_mt_gmtx *)malloc(sizeof *bst);
 
     if (bst == NULL) {
         PANIC("malloc() failure\n");
+    }
+
+    if (pthread_mutex_init(&bst->mtx, NULL)) {
+        PANIC("pthread_mutex_init() failure\n");
     }
 
     bst->count = 0;
@@ -52,14 +58,16 @@ bst_st *bst_st_new() {
     return bst;
 }
 
-int bst_st_add(bst_st *bst, int value) {
+int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
     if (bst == NULL) {
         return 1;
     }
 
+    pthread_mutex_lock(&bst->mtx);
     if (bst->root == NULL) {
         bst->count++;
         bst->root = bst_node_new(value);
+        pthread_mutex_unlock(&bst->mtx);
         return 0;
     }
 
@@ -69,6 +77,7 @@ int bst_st_add(bst_st *bst, int value) {
         if (value - root->value < 0) {
             if (root->left == NULL) {
                 root->left = bst_node_new(value);
+                pthread_mutex_unlock(&bst->mtx);
                 return 0;
             }
 
@@ -76,20 +85,22 @@ int bst_st_add(bst_st *bst, int value) {
         } else if (value - root->value > 0) {
             if (root->right == NULL) {
                 root->right = bst_node_new(value);
+                pthread_mutex_unlock(&bst->mtx);
                 return 0;
             }
 
             root = root->right;
         } else {
+            pthread_mutex_unlock(&bst->mtx);
             // Value already exists
             return 0;
         }
     }
-
+    pthread_mutex_unlock(&bst->mtx);
     return 1;
 }
 
-int bst_st_search(bst_st *bst, int value) {
+int bst_mt_gmtx_search(bst_mt_gmtx *bst, int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -109,7 +120,7 @@ int bst_st_search(bst_st *bst, int value) {
     return 1;
 }
 
-int bst_st_min(bst_st *bst) {
+int bst_mt_gmtx_min(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -127,7 +138,7 @@ int bst_st_min(bst_st *bst) {
     return root->value;
 }
 
-int bst_st_max(bst_st *bst) {
+int bst_mt_gmtx_max(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -156,7 +167,7 @@ int bst_node_find_height(bst_node *root) {
                    bst_node_find_height(root->right));
 }
 
-int bst_st_height(bst_st *bst) {
+int bst_mt_gmtx_height(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return -1;
     }
@@ -164,7 +175,7 @@ int bst_st_height(bst_st *bst) {
     return bst_node_find_height(bst->root);
 }
 
-int bst_st_width(bst_st *bst) {
+int bst_mt_gmtx_width(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return -1;
     }
@@ -202,7 +213,7 @@ void bst_node_traverse_preorder(bst_node *node) {
     }
 }
 
-int bst_st_traverse_preorder(bst_st *bst) {
+int bst_mt_gmtx_traverse_preorder(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -221,7 +232,7 @@ void bst_node_traverse_inorder(bst_node *node) {
     }
 }
 
-int bst_st_traverse_inorder(bst_st *bst) {
+int bst_mt_gmtx_traverse_inorder(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -240,7 +251,7 @@ void bst_node_traverse_postorder(bst_node *node) {
     }
 }
 
-int bst_st_traverse_postorder(bst_st *bst) {
+int bst_mt_gmtx_traverse_postorder(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -286,15 +297,17 @@ bst_node *delete_node(bst_node *root, int value) {
 
         root->right = delete_node(root->right, temp->value);
     }
+
     return root;
 }
 
-int bst_st_delete(bst_st *bst, int value) {
+int bst_mt_gmtx_delete(bst_mt_gmtx *bst, int value) {
     if (bst == NULL) {
         return 1;
     }
-
+    pthread_mutex_lock(&bst->mtx);
     delete_node(bst->root, value);
+    pthread_mutex_unlock(&bst->mtx);
     bst->count--;
 
     return 0;
@@ -329,7 +342,7 @@ int node_count(bst_node *root) {
     }
 }
 
-int bst_st_node_count(bst_st *bst) {
+int bst_mt_gmtx_node_count(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 0;
     }
@@ -337,7 +350,7 @@ int bst_st_node_count(bst_st *bst) {
     return node_count(bst->root);
 }
 
-bst_st *bst_st_rebalance(bst_st *bst) {
+bst_mt_gmtx *bst_mt_gmtx_rebalance(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return NULL;
     }
@@ -346,6 +359,7 @@ bst_st *bst_st_rebalance(bst_st *bst) {
         return NULL;
     }
 
+    pthread_mutex_lock(&bst->mtx);
     int *inorder = malloc(sizeof(int) * bst->count);
     int index = 0;
     save_inorder(bst->root, inorder, &index);
@@ -357,19 +371,20 @@ bst_st *bst_st_rebalance(bst_st *bst) {
     bst->root = array_to_bst(inorder, 0, index - 1);
 
     free(inorder);
+    pthread_mutex_unlock(&bst->mtx);
     return bst;
 }
 
-void bst_st_print_details(bst_st *bst) {
+void bst_mt_gmtx_print_details(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return;
     }
 
     printf("\nNodes: %ld\n", bst->count);
-    printf("Min: %d\n", bst_st_min(bst));
-    printf("Max: %d\n", bst_st_max(bst));
-    printf("Height: %d\n", bst_st_height(bst));
-    printf("Width: %d\n", bst_st_width(bst));
+    printf("Min: %d\n", bst_mt_gmtx_min(bst));
+    printf("Max: %d\n", bst_mt_gmtx_max(bst));
+    printf("Height: %d\n", bst_mt_gmtx_height(bst));
+    printf("Width: %d\n", bst_mt_gmtx_width(bst));
 }
 
 #endif
