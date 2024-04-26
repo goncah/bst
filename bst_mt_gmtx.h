@@ -38,8 +38,12 @@ IN THE SOFTWARE.
 typedef struct bst_mt_gmtx {
     pthread_mutex_t mtx;
     long count;
+    int rebalance;
+    int cr;
     bst_node *root;
 } bst_mt_gmtx;
+
+void bst_mt_gmtx_check_rebalance(bst_mt_gmtx *bst);
 
 bst_mt_gmtx *bst_mt_gmtx_new() {
     bst_mt_gmtx *bst = (bst_mt_gmtx *)malloc(sizeof *bst);
@@ -68,6 +72,7 @@ int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
         bst->count++;
         bst->root = bst_node_new(value);
         pthread_mutex_unlock(&bst->mtx);
+        bst_mt_gmtx_check_rebalance(bst);
         return 0;
     }
 
@@ -78,6 +83,7 @@ int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
             if (root->left == NULL) {
                 root->left = bst_node_new(value);
                 pthread_mutex_unlock(&bst->mtx);
+                bst_mt_gmtx_check_rebalance(bst);
                 return 0;
             }
 
@@ -86,6 +92,7 @@ int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
             if (root->right == NULL) {
                 root->right = bst_node_new(value);
                 pthread_mutex_unlock(&bst->mtx);
+                bst_mt_gmtx_check_rebalance(bst);
                 return 0;
             }
 
@@ -156,15 +163,13 @@ int bst_mt_gmtx_max(bst_mt_gmtx *bst) {
     return root->value;
 }
 
-int max(int a, int b) { return (a > b) ? a : b; }
-
-int bst_node_find_height(bst_node *root) {
+int bst_mt_gmtx_node_find_height(bst_node *root) {
     if (root == NULL) {
         return -1;
     }
 
-    return 1 + max(bst_node_find_height(root->left),
-                   bst_node_find_height(root->right));
+    return 1 + max(bst_mt_gmtx_node_find_height(root->left),
+                   bst_mt_gmtx_node_find_height(root->right));
 }
 
 int bst_mt_gmtx_height(bst_mt_gmtx *bst) {
@@ -172,7 +177,7 @@ int bst_mt_gmtx_height(bst_mt_gmtx *bst) {
         return -1;
     }
 
-    return bst_node_find_height(bst->root);
+    return bst_mt_gmtx_node_find_height(bst->root);
 }
 
 int bst_mt_gmtx_width(bst_mt_gmtx *bst) {
@@ -205,11 +210,11 @@ int bst_mt_gmtx_width(bst_mt_gmtx *bst) {
     return w;
 }
 
-void bst_node_traverse_preorder(bst_node *node) {
+void bst_mt_gmtx_node_traverse_preorder(bst_node *node) {
     if (node != NULL) {
         printf("%d ", node->value);
-        bst_node_traverse_preorder(node->left);
-        bst_node_traverse_preorder(node->right);
+        bst_mt_gmtx_node_traverse_preorder(node->left);
+        bst_mt_gmtx_node_traverse_preorder(node->right);
     }
 }
 
@@ -218,17 +223,17 @@ int bst_mt_gmtx_traverse_preorder(bst_mt_gmtx *bst) {
         return 1;
     }
 
-    bst_node_traverse_preorder(bst->root);
+    bst_mt_gmtx_node_traverse_preorder(bst->root);
     printf("\n");
 
     return 0;
 }
 
-void bst_node_traverse_inorder(bst_node *node) {
+void bst_mt_gmtx_node_traverse_inorder(bst_node *node) {
     if (node != NULL) {
-        bst_node_traverse_preorder(node->left);
+        bst_mt_gmtx_node_traverse_inorder(node->left);
         printf("%d ", node->value);
-        bst_node_traverse_preorder(node->right);
+        bst_mt_gmtx_node_traverse_inorder(node->right);
     }
 }
 
@@ -237,16 +242,16 @@ int bst_mt_gmtx_traverse_inorder(bst_mt_gmtx *bst) {
         return 1;
     }
 
-    bst_node_traverse_inorder(bst->root);
+    bst_mt_gmtx_node_traverse_inorder(bst->root);
     printf("\n");
 
     return 0;
 }
 
-void bst_node_traverse_postorder(bst_node *node) {
+void bst_mt_gmtx_node_traverse_postorder(bst_node *node) {
     if (node != NULL) {
-        bst_node_traverse_preorder(node->left);
-        bst_node_traverse_preorder(node->right);
+        bst_mt_gmtx_node_traverse_postorder(node->left);
+        bst_mt_gmtx_node_traverse_postorder(node->right);
         printf("%d ", node->value);
     }
 }
@@ -256,7 +261,7 @@ int bst_mt_gmtx_traverse_postorder(bst_mt_gmtx *bst) {
         return 1;
     }
 
-    bst_node_traverse_postorder(bst->root);
+    bst_mt_gmtx_node_traverse_postorder(bst->root);
     printf("\n");
 
     return 0;
@@ -364,8 +369,6 @@ bst_mt_gmtx *bst_mt_gmtx_rebalance(bst_mt_gmtx *bst) {
     int index = 0;
     save_inorder(bst->root, inorder, &index);
 
-    bst_node *root = bst->root;
-
     bst_node_free(bst->root);
 
     bst->root = array_to_bst(inorder, 0, index - 1);
@@ -373,6 +376,21 @@ bst_mt_gmtx *bst_mt_gmtx_rebalance(bst_mt_gmtx *bst) {
     free(inorder);
     pthread_mutex_unlock(&bst->mtx);
     return bst;
+}
+
+void bst_mt_gmtx_check_rebalance(bst_mt_gmtx *bst) {
+    if (bst == NULL) {
+        return;
+    }
+
+    if (bst->cr >= bst->rebalance) {
+        bst_mt_gmtx_rebalance(bst);
+        bst->cr = 0;
+    }
+
+    if (bst->count >= bst->rebalance * 10) {
+        bst->rebalance = bst->rebalance * 10;
+    }
 }
 
 void bst_mt_gmtx_print_details(bst_mt_gmtx *bst) {

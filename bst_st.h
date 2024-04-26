@@ -41,9 +41,9 @@ typedef struct bst_st {
     bst_node *root;
 } bst_st;
 
-void bst_check_rebalance(bst_st *bst);
+void bst_st_check_rebalance(bst_st *bst);
 
-bst_st *bst_st_new(int rebalance) {
+bst_st *bst_st_new() {
     bst_st *bst = (bst_st *)malloc(sizeof *bst);
 
     if (bst == NULL) {
@@ -51,7 +51,7 @@ bst_st *bst_st_new(int rebalance) {
     }
 
     bst->count = 0;
-    bst->rebalance = rebalance;
+    bst->rebalance = 1;
     bst->cr = 0;
     bst->root = NULL;
 
@@ -67,7 +67,7 @@ int bst_st_add(bst_st *bst, int value) {
         bst->count++;
         bst->cr++;
         bst->root = bst_node_new(value);
-        bst_check_rebalance(bst);
+        bst_st_check_rebalance(bst);
         return 0;
     }
 
@@ -78,7 +78,7 @@ int bst_st_add(bst_st *bst, int value) {
         if (value - root->value < 0) {
             if (root->left == NULL) {
                 root->left = bst_node_new(value);
-                bst_check_rebalance(bst);
+                bst_st_check_rebalance(bst);
                 return 0;
             }
 
@@ -86,7 +86,7 @@ int bst_st_add(bst_st *bst, int value) {
         } else if (value - root->value > 0) {
             if (root->right == NULL) {
                 root->right = bst_node_new(value);
-                bst_check_rebalance(bst);
+                bst_st_check_rebalance(bst);
                 return 0;
             }
 
@@ -156,15 +156,13 @@ int bst_st_max(bst_st *bst) {
     return root->value;
 }
 
-int max(int a, int b) { return (a > b) ? a : b; }
-
-int bst_node_find_height(bst_node *root) {
+int bst_st_node_find_height(bst_node *root) {
     if (root == NULL) {
         return -1;
     }
 
-    return 1 + max(bst_node_find_height(root->left),
-                   bst_node_find_height(root->right));
+    return 1 + max(bst_st_node_find_height(root->left),
+                   bst_st_node_find_height(root->right));
 }
 
 int bst_st_height(bst_st *bst) {
@@ -172,7 +170,7 @@ int bst_st_height(bst_st *bst) {
         return -1;
     }
 
-    return bst_node_find_height(bst->root);
+    return bst_st_node_find_height(bst->root);
 }
 
 int bst_st_width(bst_st *bst) {
@@ -206,11 +204,11 @@ int bst_st_width(bst_st *bst) {
     return w;
 }
 
-void bst_node_traverse_preorder(bst_node *node) {
+void bst_st_node_traverse_preorder(bst_node *node) {
     if (node != NULL) {
         printf("%d ", node->value);
-        bst_node_traverse_preorder(node->left);
-        bst_node_traverse_preorder(node->right);
+        bst_st_node_traverse_preorder(node->left);
+        bst_st_node_traverse_preorder(node->right);
     }
 }
 
@@ -219,17 +217,17 @@ int bst_st_traverse_preorder(bst_st *bst) {
         return 1;
     }
 
-    bst_node_traverse_preorder(bst->root);
+    bst_st_node_traverse_preorder(bst->root);
     printf("\n");
 
     return 0;
 }
 
-void bst_node_traverse_inorder(bst_node *node) {
+void bst_st_node_traverse_inorder(bst_node *node) {
     if (node != NULL) {
-        bst_node_traverse_preorder(node->left);
+        bst_st_node_traverse_inorder(node->left);
         printf("%d ", node->value);
-        bst_node_traverse_preorder(node->right);
+        bst_st_node_traverse_inorder(node->right);
     }
 }
 
@@ -238,16 +236,16 @@ int bst_st_traverse_inorder(bst_st *bst) {
         return 1;
     }
 
-    bst_node_traverse_inorder(bst->root);
+    bst_st_node_traverse_inorder(bst->root);
     printf("\n");
 
     return 0;
 }
 
-void bst_node_traverse_postorder(bst_node *node) {
+void bst_st_node_traverse_postorder(bst_node *node) {
     if (node != NULL) {
-        bst_node_traverse_preorder(node->left);
-        bst_node_traverse_preorder(node->right);
+        bst_st_node_traverse_postorder(node->left);
+        bst_st_node_traverse_postorder(node->right);
         printf("%d ", node->value);
     }
 }
@@ -257,13 +255,13 @@ int bst_st_traverse_postorder(bst_st *bst) {
         return 1;
     }
 
-    bst_node_traverse_postorder(bst->root);
+    bst_st_node_traverse_postorder(bst->root);
     printf("\n");
 
     return 0;
 }
 
-bst_node *min_node(bst_node *node) {
+bst_node *st_min_node(bst_node *node) {
     bst_node *current = node;
 
     while (current && current->left != NULL) {
@@ -272,15 +270,15 @@ bst_node *min_node(bst_node *node) {
     return current;
 }
 
-bst_node *delete_node(bst_node *root, int value) {
+bst_node *st_delete_node(bst_node *root, int value) {
     if (root == NULL) {
         return root;
     }
 
     if (value < root->value) {
-        root->left = delete_node(root->left, value);
+        root->left = st_delete_node(root->left, value);
     } else if (value > root->value) {
-        root->right = delete_node(root->right, value);
+        root->right = st_delete_node(root->right, value);
     } else {
         if (root->left == NULL) {
             bst_node *temp = root->right;
@@ -292,11 +290,11 @@ bst_node *delete_node(bst_node *root, int value) {
             return temp;
         }
 
-        bst_node *temp = min_node(root->right);
+        bst_node *temp = st_min_node(root->right);
 
         root->value = temp->value;
 
-        root->right = delete_node(root->right, temp->value);
+        root->right = st_delete_node(root->right, temp->value);
     }
     return root;
 }
@@ -306,21 +304,21 @@ int bst_st_delete(bst_st *bst, int value) {
         return 1;
     }
 
-    delete_node(bst->root, value);
+    st_delete_node(bst->root, value);
     bst->count--;
 
     return 0;
 }
 
-void save_inorder(bst_node *node, int *inorder, int *index) {
+void st_save_inorder(bst_node *node, int *inorder, int *index) {
     if (node == NULL)
         return;
-    save_inorder(node->left, inorder, index);
+    st_save_inorder(node->left, inorder, index);
     inorder[(*index)++] = node->value;
-    save_inorder(node->right, inorder, index);
+    st_save_inorder(node->right, inorder, index);
 }
 
-bst_node *array_to_bst(int arr[], int start, int end) {
+bst_node *st_array_to_bst(int arr[], int start, int end) {
     if (start > end)
         return NULL;
 
@@ -333,11 +331,11 @@ bst_node *array_to_bst(int arr[], int start, int end) {
     return node;
 }
 
-int node_count(bst_node *root) {
+int st_node_count(bst_node *root) {
     if (root == NULL) {
         return 0;
     } else {
-        return node_count(root->left) + node_count(root->right) + 1;
+        return st_node_count(root->left) + st_node_count(root->right) + 1;
     }
 }
 
@@ -346,7 +344,7 @@ int bst_st_node_count(bst_st *bst) {
         return 0;
     }
 
-    return node_count(bst->root);
+    return st_node_count(bst->root);
 }
 
 bst_st *bst_st_rebalance(bst_st *bst) {
@@ -360,17 +358,17 @@ bst_st *bst_st_rebalance(bst_st *bst) {
 
     int *inorder = malloc(sizeof(int) * bst->count);
     int index = 0;
-    save_inorder(bst->root, inorder, &index);
+    st_save_inorder(bst->root, inorder, &index);
 
     bst_node_free(bst->root);
 
-    bst->root = array_to_bst(inorder, 0, index - 1);
+    bst->root = st_array_to_bst(inorder, 0, index - 1);
 
     free(inorder);
     return bst;
 }
 
-void bst_check_rebalance(bst_st *bst) {
+void bst_st_check_rebalance(bst_st *bst) {
     if (bst == NULL) {
         return;
     }
@@ -378,6 +376,10 @@ void bst_check_rebalance(bst_st *bst) {
     if (bst->cr >= bst->rebalance) {
         bst_st_rebalance(bst);
         bst->cr = 0;
+    }
+
+    if (bst->count >= bst->rebalance * 10) {
+        bst->rebalance = bst->rebalance * 10;
     }
 }
 

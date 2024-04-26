@@ -105,4 +105,6 @@ void bst_node_free(bst_node *root) {
     free(root);
 }
 
+int max(int a, int b) { return (a > b) ? a : b; }
+
 #endif

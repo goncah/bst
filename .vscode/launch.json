@@ -8,8 +8,7 @@
             "program": "${workspaceRoot}/out/test_bst",
             "args": [
                 "st",
-                "10",
-                "100"
+                "100000"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}/out",
