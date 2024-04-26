@@ -36,10 +36,14 @@ IN THE SOFTWARE.
 
 typedef struct bst_st {
     long count;
+    int rebalance;
+    int cr;
     bst_node *root;
 } bst_st;
 
-bst_st *bst_st_new() {
+void bst_check_rebalance(bst_st *bst);
+
+bst_st *bst_st_new(int rebalance) {
     bst_st *bst = (bst_st *)malloc(sizeof *bst);
 
     if (bst == NULL) {
@@ -47,6 +51,8 @@ bst_st *bst_st_new() {
     }
 
     bst->count = 0;
+    bst->rebalance = rebalance;
+    bst->cr = 0;
     bst->root = NULL;
 
     return bst;
@@ -59,16 +65,20 @@ int bst_st_add(bst_st *bst, int value) {
 
     if (bst->root == NULL) {
         bst->count++;
+        bst->cr++;
         bst->root = bst_node_new(value);
+        bst_check_rebalance(bst);
         return 0;
     }
 
     bst_node *root = bst->root;
     bst->count++;
+    bst->cr++;
     while (root != NULL) {
         if (value - root->value < 0) {
             if (root->left == NULL) {
                 root->left = bst_node_new(value);
+                bst_check_rebalance(bst);
                 return 0;
             }
 
@@ -76,6 +86,7 @@ int bst_st_add(bst_st *bst, int value) {
         } else if (value - root->value > 0) {
             if (root->right == NULL) {
                 root->right = bst_node_new(value);
+                bst_check_rebalance(bst);
                 return 0;
             }
 
@@ -170,7 +181,7 @@ int bst_st_width(bst_st *bst) {
     }
 
     int w = 0;
-    bst_node *q[bst->count];
+    bst_node **q = malloc(sizeof *q * bst->count);
     int f = 0, r = 0;
 
     q[r++] = bst->root;
@@ -191,6 +202,7 @@ int bst_st_width(bst_st *bst) {
         }
     }
 
+    free(q);
     return w;
 }
 
@@ -350,8 +362,6 @@ bst_st *bst_st_rebalance(bst_st *bst) {
     int index = 0;
     save_inorder(bst->root, inorder, &index);
 
-    bst_node *root = bst->root;
-
     bst_node_free(bst->root);
 
     bst->root = array_to_bst(inorder, 0, index - 1);
@@ -360,16 +370,26 @@ bst_st *bst_st_rebalance(bst_st *bst) {
     return bst;
 }
 
-void bst_st_print_details(bst_st *bst) {
+void bst_check_rebalance(bst_st *bst) {
     if (bst == NULL) {
         return;
     }
 
-    printf("\nNodes: %ld\n", bst->count);
-    printf("Min: %d\n", bst_st_min(bst));
-    printf("Max: %d\n", bst_st_max(bst));
-    printf("Height: %d\n", bst_st_height(bst));
-    printf("Width: %d\n", bst_st_width(bst));
+    if (bst->cr >= bst->rebalance) {
+        bst_st_rebalance(bst);
+        bst->cr = 0;
+    }
+}
+
+void bst_st_print_details(bst_st *bst) {
+    if (bst == NULL) {
+        return;
+    }
+    printf("%ld,", bst->count);
+    printf("%d,", bst_st_min(bst));
+    printf("%d,", bst_st_max(bst));
+    printf("%d,", bst_st_height(bst));
+    printf("%d,", bst_st_width(bst));
 }
 
 #endif

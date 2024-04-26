@@ -30,6 +30,9 @@ IN THE SOFTWARE.
 #ifndef __bst_common__
 #define __bst_common__
 
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -38,6 +41,33 @@ IN THE SOFTWARE.
         fprintf(stderr, msg);                                                  \
         exit(1);                                                               \
     }
+
+#define ERROR(msg)                                                             \
+    { fprintf(stderr, msg); }
+
+typedef enum {
+    STR2INT_SUCCESS,
+    STR2INT_OVERFLOW,
+    STR2INT_UNDERFLOW,
+    STR2INT_INCONVERTIBLE
+} str2int_errno;
+
+str2int_errno str2int(int *out, char *s, int base) {
+    char *end;
+    if (s[0] == '\0' || isspace(s[0]))
+        return STR2INT_INCONVERTIBLE;
+    errno = 0;
+    long l = strtol(s, &end, base);
+    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
+    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
+        return STR2INT_OVERFLOW;
+    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
+        return STR2INT_UNDERFLOW;
+    if (*end != '\0')
+        return STR2INT_INCONVERTIBLE;
+    *out = l;
+    return STR2INT_SUCCESS;
+}
 
 typedef struct bst_node {
     int value;

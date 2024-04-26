@@ -2,22 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "compile_bst_st",
+            "label": "compile_bst",
             "type": "shell",
-            "command": "gcc -Wall -Wextra -std=gnu2x test_st.c -o out/test_st",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "compile_bst_mt_gmtx",
-            "type": "shell",
-            "command": "gcc -Wall -Wextra -std=gnu2x -pthread test_mt_gmtx.c -o out/test_mt_gmtx",
+            "command": "gcc -g -Wall -Wextra -std=gnu2x -pthread test_bst.c -o out/test_bst",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
