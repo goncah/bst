@@ -2,7 +2,7 @@
 MT Binary Search Tree Implementation exploring concurrency control techniques
 
 ## Build
-gcc -std=gnu2x -pthread test_bst.c -o test_bst
+gcc -Ofast -std=gnu2x -pthread test_bst.c -o out/test_bst
 
 # Usage
 ## BST Single Thread

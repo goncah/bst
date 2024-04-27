@@ -4,7 +4,7 @@
         {
             "label": "compile_bst",
             "type": "shell",
-            "command": "gcc -g -Wall -Wextra -std=gnu2x -pthread test_bst.c -o out/test_bst",
+            "command": "gcc -g -Og -Wall -Wextra -std=gnu2x -pthread test_bst.c -o out/test_bst",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
