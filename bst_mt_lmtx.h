@@ -43,7 +43,6 @@ typedef struct bst_mt_node {
 } bst_mt_node;
 
 typedef struct bst_mt_lmtx {
-    long count;
     bst_mt_node *root;
     pthread_mutex_t mtx;
 } bst_mt_lmtx;
@@ -93,7 +92,6 @@ static inline bst_mt_lmtx *bst_mt_lmtx_new() {
         PANIC("pthread_mutex_init() failure");
     }
 
-    bst->count = 0;
     bst->root = NULL;
 
     return bst;
@@ -107,7 +105,6 @@ static inline int bst_mt_lmtx_add(bst_mt_lmtx *bst, int value) {
     if (bst->root == NULL) {
         pthread_mutex_lock(&bst->mtx);
         if (bst->root == NULL) {
-            bst->count++;
             bst->root = bst_mt_node_new(value);
             pthread_mutex_unlock(&bst->mtx);
             return 0;
@@ -116,7 +113,6 @@ static inline int bst_mt_lmtx_add(bst_mt_lmtx *bst, int value) {
     }
 
     bst_mt_node *root = bst->root, *tmp;
-    bst->count++;
     while (root != NULL) {
         if (value - root->value < 0) {
             pthread_mutex_lock(&root->mtx);
@@ -246,37 +242,6 @@ static inline int bst_mt_lmtx_height(bst_mt_lmtx *bst) {
     return bst_mt_lmtx_node_find_height(bst->root);
 }
 
-static inline int bst_mt_lmtx_width(bst_mt_lmtx *bst) {
-    if (bst == NULL) {
-        return -1;
-    }
-
-    int w = 0;
-    bst_mt_node **q = malloc(sizeof *q * bst->count);
-    int f = 0, r = 0;
-
-    q[r++] = bst->root;
-
-    while (f < r) {
-        int count = r - f;
-        w = w > count ? w : count;
-
-        for (int i = 0; i < count; i++) {
-            bst_mt_node *n = q[f++];
-            if (n->left != NULL) {
-                q[r++] = n->left;
-            }
-
-            if (n->right != NULL) {
-                q[r++] = n->right;
-            }
-        }
-    }
-
-    free(q);
-    return w;
-}
-
 static inline void bst_mt_lmtx_node_traverse_preorder(bst_mt_node *node) {
     if (node != NULL) {
         printf("%d ", node->value);
@@ -378,7 +343,6 @@ static inline int bst_mt_lmtx_delete(bst_mt_lmtx *bst, int value) {
     }
 
     lmt_delete_node(bst->root, value);
-    bst->count--;
 
     return 0;
 }
@@ -413,6 +377,37 @@ static inline int lmt_node_count(bst_mt_node *root) {
     }
 }
 
+static inline int bst_mt_lmtx_width(bst_mt_lmtx *bst) {
+    if (bst == NULL) {
+        return -1;
+    }
+
+    int w = 0;
+    bst_mt_node **q = malloc(sizeof *q * lmt_node_count(bst->root));
+    int f = 0, r = 0;
+
+    q[r++] = bst->root;
+
+    while (f < r) {
+        int count = r - f;
+        w = w > count ? w : count;
+
+        for (int i = 0; i < count; i++) {
+            bst_mt_node *n = q[f++];
+            if (n->left != NULL) {
+                q[r++] = n->left;
+            }
+
+            if (n->right != NULL) {
+                q[r++] = n->right;
+            }
+        }
+    }
+
+    free(q);
+    return w;
+}
+
 static inline int bst_mt_lmtx_node_count(bst_mt_lmtx *bst) {
     if (bst == NULL) {
         return 0;
@@ -430,7 +425,7 @@ static inline bst_mt_lmtx *bst_mt_lmtx_rebalance(bst_mt_lmtx *bst) {
         return NULL;
     }
 
-    int *inorder = malloc(sizeof(int) * bst->count);
+    int *inorder = malloc(sizeof(int) * lmt_node_count(bst->root));
     int index = 0;
     lmt_save_inorder(bst->root, inorder, &index);
 
@@ -446,7 +441,7 @@ static inline void bst_mt_lmtx_print_details(bst_mt_lmtx *bst) {
     if (bst == NULL) {
         return;
     }
-    printf("%ld,", bst->count);
+    printf("%d,", lmt_node_count(bst->root));
     printf("%d,", bst_mt_lmtx_min(bst));
     printf("%d,", bst_mt_lmtx_max(bst));
     printf("%d,", bst_mt_lmtx_height(bst));

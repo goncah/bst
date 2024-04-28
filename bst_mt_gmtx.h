@@ -36,7 +36,6 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 
 typedef struct bst_mt_gmtx {
-    long count;
     pthread_mutex_t mtx;
     bst_node *root;
 } bst_mt_gmtx;
@@ -52,9 +51,7 @@ static inline bst_mt_gmtx *bst_mt_gmtx_new() {
         PANIC("pthread_mutex_init() failure");
     }
 
-    bst->count = 0;
     bst->root = NULL;
-
     return bst;
 }
 
@@ -64,18 +61,14 @@ static inline int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
     }
 
     pthread_mutex_lock(&bst->mtx);
-
     if (bst->root == NULL) {
-        if (bst->root == NULL) {
-            bst->count++;
-            bst->root = bst_node_new(value);
-            pthread_mutex_unlock(&bst->mtx);
-            return 0;
-        }
+        bst->root = bst_node_new(value);
+        pthread_mutex_unlock(&bst->mtx);
+        return 0;
     }
 
     bst_node *root = bst->root;
-    bst->count++;
+
     while (root != NULL) {
         if (value - root->value < 0) {
             if (root->left == NULL) {
@@ -99,6 +92,7 @@ static inline int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
             return 0;
         }
     }
+
     pthread_mutex_unlock(&bst->mtx);
     return 1;
 }
@@ -174,37 +168,6 @@ static inline int bst_mt_gmtx_height(bst_mt_gmtx *bst) {
     }
 
     return bst_mt_gmtx_node_find_height(bst->root);
-}
-
-static inline int bst_mt_gmtx_width(bst_mt_gmtx *bst) {
-    if (bst == NULL) {
-        return -1;
-    }
-
-    int w = 0;
-    bst_node **q = malloc(sizeof *q * bst->count);
-    int f = 0, r = 0;
-
-    q[r++] = bst->root;
-
-    while (f < r) {
-        int count = r - f;
-        w = w > count ? w : count;
-
-        for (int i = 0; i < count; i++) {
-            bst_node *n = q[f++];
-            if (n->left != NULL) {
-                q[r++] = n->left;
-            }
-
-            if (n->right != NULL) {
-                q[r++] = n->right;
-            }
-        }
-    }
-
-    free(q);
-    return w;
 }
 
 static inline void bst_mt_gmtx_node_traverse_preorder(bst_node *node) {
@@ -309,7 +272,6 @@ static inline int bst_mt_gmtx_delete(bst_mt_gmtx *bst, int value) {
 
     pthread_mutex_lock(&bst->mtx);
     mt_delete_node(bst->root, value);
-    bst->count--;
     pthread_mutex_unlock(&bst->mtx);
 
     return 0;
@@ -352,6 +314,37 @@ static inline int bst_mt_gmtx_node_count(bst_mt_gmtx *bst) {
     return mt_node_count(bst->root);
 }
 
+static inline int bst_mt_gmtx_width(bst_mt_gmtx *bst) {
+    if (bst == NULL) {
+        return -1;
+    }
+
+    int w = 0;
+    bst_node **q = malloc(sizeof *q * mt_node_count(bst->root));
+    int f = 0, r = 0;
+
+    q[r++] = bst->root;
+
+    while (f < r) {
+        int count = r - f;
+        w = w > count ? w : count;
+
+        for (int i = 0; i < count; i++) {
+            bst_node *n = q[f++];
+            if (n->left != NULL) {
+                q[r++] = n->left;
+            }
+
+            if (n->right != NULL) {
+                q[r++] = n->right;
+            }
+        }
+    }
+
+    free(q);
+    return w;
+}
+
 static inline bst_mt_gmtx *bst_mt_gmtx_rebalance(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return NULL;
@@ -363,7 +356,7 @@ static inline bst_mt_gmtx *bst_mt_gmtx_rebalance(bst_mt_gmtx *bst) {
 
     pthread_mutex_lock(&bst->mtx);
 
-    int *inorder = malloc(sizeof(int) * bst->count);
+    int *inorder = malloc(sizeof(int) * mt_node_count(bst->root));
     int index = 0;
     mt_save_inorder(bst->root, inorder, &index);
 
@@ -381,7 +374,7 @@ static inline void bst_mt_gmtx_print_details(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return;
     }
-    printf("%ld,", bst->count);
+    printf("%d,", mt_node_count(bst->root));
     printf("%d,", bst_mt_gmtx_min(bst));
     printf("%d,", bst_mt_gmtx_max(bst));
     printf("%d,", bst_mt_gmtx_height(bst));
