@@ -35,7 +35,7 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 
 typedef struct bst_st {
-    long count;
+    long long int count;
     bst_node *root;
 } bst_st;
 
@@ -52,7 +52,7 @@ static inline bst_st *bst_st_new() {
     return bst;
 }
 
-static inline int bst_st_add(bst_st *bst, int value) {
+static inline int bst_st_add(bst_st *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -89,7 +89,7 @@ static inline int bst_st_add(bst_st *bst, int value) {
     return 1;
 }
 
-static inline int bst_st_search(bst_st *bst, int value) {
+static inline int bst_st_search(bst_st *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -109,7 +109,7 @@ static inline int bst_st_search(bst_st *bst, int value) {
     return 1;
 }
 
-static inline int bst_st_min(bst_st *bst) {
+static inline long long int bst_st_min(bst_st *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -127,7 +127,7 @@ static inline int bst_st_min(bst_st *bst) {
     return root->value;
 }
 
-static inline int bst_st_max(bst_st *bst) {
+static inline long long int bst_st_max(bst_st *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -145,7 +145,7 @@ static inline int bst_st_max(bst_st *bst) {
     return root->value;
 }
 
-static inline int bst_st_node_find_height(bst_node *root) {
+static inline long long int bst_st_node_find_height(bst_node *root) {
     if (root == NULL) {
         return -1;
     }
@@ -154,7 +154,7 @@ static inline int bst_st_node_find_height(bst_node *root) {
                    bst_st_node_find_height(root->right));
 }
 
-static inline int bst_st_height(bst_st *bst) {
+static inline long long int bst_st_height(bst_st *bst) {
     if (bst == NULL) {
         return -1;
     }
@@ -162,19 +162,19 @@ static inline int bst_st_height(bst_st *bst) {
     return bst_st_node_find_height(bst->root);
 }
 
-static inline int bst_st_width(bst_st *bst) {
+static inline long long int bst_st_width(bst_st *bst) {
     if (bst == NULL) {
         return -1;
     }
 
-    int w = 0;
+    long long int w = 0;
     bst_node **q = malloc(sizeof *q * bst->count);
-    int f = 0, r = 0;
+    long long int f = 0, r = 0;
 
     q[r++] = bst->root;
 
     while (f < r) {
-        int count = r - f;
+        long long int count = r - f;
         w = w > count ? w : count;
 
         for (int i = 0; i < count; i++) {
@@ -195,7 +195,7 @@ static inline int bst_st_width(bst_st *bst) {
 
 static inline void bst_st_node_traverse_preorder(bst_node *node) {
     if (node != NULL) {
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
         bst_st_node_traverse_preorder(node->left);
         bst_st_node_traverse_preorder(node->right);
     }
@@ -215,7 +215,7 @@ static inline int bst_st_traverse_preorder(bst_st *bst) {
 static inline void bst_st_node_traverse_inorder(bst_node *node) {
     if (node != NULL) {
         bst_st_node_traverse_inorder(node->left);
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
         bst_st_node_traverse_inorder(node->right);
     }
 }
@@ -235,7 +235,7 @@ static inline void bst_st_node_traverse_postorder(bst_node *node) {
     if (node != NULL) {
         bst_st_node_traverse_postorder(node->left);
         bst_st_node_traverse_postorder(node->right);
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
     }
 }
 
@@ -259,7 +259,7 @@ static inline bst_node *st_min_node(bst_node *node) {
     return current;
 }
 
-static inline bst_node *st_delete_node(bst_node *root, int value) {
+static inline bst_node *st_delete_node(bst_node *root, long long int value) {
     if (root == NULL) {
         return root;
     }
@@ -288,7 +288,7 @@ static inline bst_node *st_delete_node(bst_node *root, int value) {
     return root;
 }
 
-static inline int bst_st_delete(bst_st *bst, int value) {
+static inline int bst_st_delete(bst_st *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -299,7 +299,8 @@ static inline int bst_st_delete(bst_st *bst, int value) {
     return 0;
 }
 
-static inline void st_save_inorder(bst_node *node, int *inorder, int *index) {
+static inline void st_save_inorder(bst_node *node, long long int *inorder,
+                                   long long int *index) {
     if (node == NULL)
         return;
     st_save_inorder(node->left, inorder, index);
@@ -307,11 +308,12 @@ static inline void st_save_inorder(bst_node *node, int *inorder, int *index) {
     st_save_inorder(node->right, inorder, index);
 }
 
-static inline bst_node *st_array_to_bst(int arr[], int start, int end) {
+static inline bst_node *
+st_array_to_bst(long long int arr[], long long int start, long long int end) {
     if (start > end)
         return NULL;
 
-    int mid = (start + end) / 2;
+    long long int mid = (start + end) / 2;
     bst_node *node = bst_node_new(arr[mid]);
 
     node->left = st_array_to_bst(arr, start, mid - 1);
@@ -320,7 +322,7 @@ static inline bst_node *st_array_to_bst(int arr[], int start, int end) {
     return node;
 }
 
-static inline int st_node_count(bst_node *root) {
+static inline long long int st_node_count(bst_node *root) {
     if (root == NULL) {
         return 0;
     } else {
@@ -345,8 +347,8 @@ static inline bst_st *bst_st_rebalance(bst_st *bst) {
         return NULL;
     }
 
-    int *inorder = malloc(sizeof(int) * bst->count);
-    int index = 0;
+    long long int *inorder = malloc(sizeof(long long int) * bst->count);
+    long long int index = 0;
     st_save_inorder(bst->root, inorder, &index);
 
     bst_node_free(bst->root);
@@ -361,11 +363,11 @@ static inline void bst_st_print_details(bst_st *bst) {
     if (bst == NULL) {
         return;
     }
-    printf("%ld,", bst->count);
-    printf("%d,", bst_st_min(bst));
-    printf("%d,", bst_st_max(bst));
-    printf("%d,", bst_st_height(bst));
-    printf("%d,", bst_st_width(bst));
+    printf("%lld,", bst->count);
+    printf("%lld,", bst_st_min(bst));
+    printf("%lld,", bst_st_max(bst));
+    printf("%lld,", bst_st_height(bst));
+    printf("%lld,", bst_st_width(bst));
 }
 
 #endif

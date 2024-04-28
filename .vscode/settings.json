@@ -12,6 +12,7 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
-    "atomic": "c"
+    "atomic": "c",
+    "algorithm": "c"
   },
 }

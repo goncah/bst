@@ -9,7 +9,7 @@
             "args": [
                 "gmtx",
                 "10",
-                "10000"
+                "1000000"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}/out",

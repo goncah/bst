@@ -55,7 +55,8 @@ static inline bst_mt_gmtx *bst_mt_gmtx_new() {
     return bst;
 }
 
-static inline int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
+static inline long long int bst_mt_gmtx_add(bst_mt_gmtx *bst,
+                                            long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -97,7 +98,7 @@ static inline int bst_mt_gmtx_add(bst_mt_gmtx *bst, int value) {
     return 1;
 }
 
-static inline int bst_mt_gmtx_search(bst_mt_gmtx *bst, int value) {
+static inline int bst_mt_gmtx_search(bst_mt_gmtx *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -117,7 +118,7 @@ static inline int bst_mt_gmtx_search(bst_mt_gmtx *bst, int value) {
     return 1;
 }
 
-static inline int bst_mt_gmtx_min(bst_mt_gmtx *bst) {
+static inline long long int bst_mt_gmtx_min(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -135,7 +136,7 @@ static inline int bst_mt_gmtx_min(bst_mt_gmtx *bst) {
     return root->value;
 }
 
-static inline int bst_mt_gmtx_max(bst_mt_gmtx *bst) {
+static inline long long int bst_mt_gmtx_max(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -153,7 +154,7 @@ static inline int bst_mt_gmtx_max(bst_mt_gmtx *bst) {
     return root->value;
 }
 
-static inline int bst_mt_gmtx_node_find_height(bst_node *root) {
+static inline long long int bst_mt_gmtx_node_find_height(bst_node *root) {
     if (root == NULL) {
         return -1;
     }
@@ -162,7 +163,7 @@ static inline int bst_mt_gmtx_node_find_height(bst_node *root) {
                    bst_mt_gmtx_node_find_height(root->right));
 }
 
-static inline int bst_mt_gmtx_height(bst_mt_gmtx *bst) {
+static inline long long int bst_mt_gmtx_height(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return -1;
     }
@@ -172,7 +173,7 @@ static inline int bst_mt_gmtx_height(bst_mt_gmtx *bst) {
 
 static inline void bst_mt_gmtx_node_traverse_preorder(bst_node *node) {
     if (node != NULL) {
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
         bst_mt_gmtx_node_traverse_preorder(node->left);
         bst_mt_gmtx_node_traverse_preorder(node->right);
     }
@@ -192,7 +193,7 @@ static inline int bst_mt_gmtx_traverse_preorder(bst_mt_gmtx *bst) {
 static inline void bst_mt_gmtx_node_traverse_inorder(bst_node *node) {
     if (node != NULL) {
         bst_mt_gmtx_node_traverse_inorder(node->left);
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
         bst_mt_gmtx_node_traverse_inorder(node->right);
     }
 }
@@ -212,7 +213,7 @@ static inline void bst_mt_gmtx_node_traverse_postorder(bst_node *node) {
     if (node != NULL) {
         bst_mt_gmtx_node_traverse_postorder(node->left);
         bst_mt_gmtx_node_traverse_postorder(node->right);
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
     }
 }
 
@@ -236,7 +237,7 @@ static inline bst_node *mt_min_node(bst_node *node) {
     return current;
 }
 
-static inline bst_node *mt_delete_node(bst_node *root, int value) {
+static inline bst_node *mt_delete_node(bst_node *root, long long int value) {
     if (root == NULL) {
         return root;
     }
@@ -265,7 +266,7 @@ static inline bst_node *mt_delete_node(bst_node *root, int value) {
     return root;
 }
 
-static inline int bst_mt_gmtx_delete(bst_mt_gmtx *bst, int value) {
+static inline int bst_mt_gmtx_delete(bst_mt_gmtx *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -277,7 +278,8 @@ static inline int bst_mt_gmtx_delete(bst_mt_gmtx *bst, int value) {
     return 0;
 }
 
-static inline void mt_save_inorder(bst_node *node, int *inorder, int *index) {
+static inline void mt_save_inorder(bst_node *node, long long int *inorder,
+                                   long long int *index) {
     if (node == NULL)
         return;
     mt_save_inorder(node->left, inorder, index);
@@ -285,11 +287,12 @@ static inline void mt_save_inorder(bst_node *node, int *inorder, int *index) {
     mt_save_inorder(node->right, inorder, index);
 }
 
-static inline bst_node *mt_array_to_bst(int arr[], int start, int end) {
+static inline bst_node *
+mt_array_to_bst(long long int arr[], long long int start, long long int end) {
     if (start > end)
         return NULL;
 
-    int mid = (start + end) / 2;
+    long long mid = (start + end) / 2;
     bst_node *node = bst_node_new(arr[mid]);
 
     node->left = mt_array_to_bst(arr, start, mid - 1);
@@ -298,7 +301,7 @@ static inline bst_node *mt_array_to_bst(int arr[], int start, int end) {
     return node;
 }
 
-static inline int mt_node_count(bst_node *root) {
+static inline long long int mt_node_count(bst_node *root) {
     if (root == NULL) {
         return 0;
     } else {
@@ -306,7 +309,7 @@ static inline int mt_node_count(bst_node *root) {
     }
 }
 
-static inline int bst_mt_gmtx_node_count(bst_mt_gmtx *bst) {
+static inline long long int bst_mt_gmtx_node_count(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return 0;
     }
@@ -314,14 +317,14 @@ static inline int bst_mt_gmtx_node_count(bst_mt_gmtx *bst) {
     return mt_node_count(bst->root);
 }
 
-static inline int bst_mt_gmtx_width(bst_mt_gmtx *bst) {
+static inline long long int bst_mt_gmtx_width(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return -1;
     }
 
-    int w = 0;
+    long long int w = 0;
     bst_node **q = malloc(sizeof *q * mt_node_count(bst->root));
-    int f = 0, r = 0;
+    long long int f = 0, r = 0;
 
     q[r++] = bst->root;
 
@@ -356,8 +359,9 @@ static inline bst_mt_gmtx *bst_mt_gmtx_rebalance(bst_mt_gmtx *bst) {
 
     pthread_mutex_lock(&bst->mtx);
 
-    int *inorder = malloc(sizeof(int) * mt_node_count(bst->root));
-    int index = 0;
+    long long int *inorder =
+        malloc(sizeof(long long int) * mt_node_count(bst->root));
+    long long int index = 0;
     mt_save_inorder(bst->root, inorder, &index);
 
     bst_node_free(bst->root);
@@ -374,11 +378,11 @@ static inline void bst_mt_gmtx_print_details(bst_mt_gmtx *bst) {
     if (bst == NULL) {
         return;
     }
-    printf("%d,", mt_node_count(bst->root));
-    printf("%d,", bst_mt_gmtx_min(bst));
-    printf("%d,", bst_mt_gmtx_max(bst));
-    printf("%d,", bst_mt_gmtx_height(bst));
-    printf("%d,", bst_mt_gmtx_width(bst));
+    printf("%lld,", mt_node_count(bst->root));
+    printf("%lld,", bst_mt_gmtx_min(bst));
+    printf("%lld,", bst_mt_gmtx_max(bst));
+    printf("%lld,", bst_mt_gmtx_height(bst));
+    printf("%lld,", bst_mt_gmtx_width(bst));
 }
 
 #endif

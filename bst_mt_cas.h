@@ -36,17 +36,17 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 
 typedef struct bst_cas_node {
-    int value;
+    long long int value;
     _Atomic(struct bst_cas_node *) left;
     _Atomic(struct bst_cas_node *) right;
 } bst_cas_node;
 
 typedef struct bst_mt_cas {
-    atomic_long count;
+    atomic_llong count;
     _Atomic(bst_cas_node *) root;
 } bst_mt_cas;
 
-static inline bst_cas_node *bst_cas_node_new(int value) {
+static inline bst_cas_node *bst_cas_node_new(long long int value) {
     bst_cas_node *node = (bst_cas_node *)malloc(sizeof *node);
 
     if (node == NULL) {
@@ -89,7 +89,7 @@ static inline bst_mt_cas *bst_mt_cas_new() {
     return bst;
 }
 
-static inline int bst_mt_cas_add(bst_mt_cas *bst, int value) {
+static inline int bst_mt_cas_add(bst_mt_cas *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -136,7 +136,7 @@ static inline int bst_mt_cas_add(bst_mt_cas *bst, int value) {
     }
 }
 
-static inline int bst_mt_cas_search(bst_mt_cas *bst, int value) {
+static inline int bst_mt_cas_search(bst_mt_cas *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -156,7 +156,7 @@ static inline int bst_mt_cas_search(bst_mt_cas *bst, int value) {
     return 1;
 }
 
-static inline int bst_mt_cas_min(bst_mt_cas *bst) {
+static inline long long int bst_mt_cas_min(bst_mt_cas *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -174,7 +174,7 @@ static inline int bst_mt_cas_min(bst_mt_cas *bst) {
     return root->value;
 }
 
-static inline int bst_mt_cas_max(bst_mt_cas *bst) {
+static inline long long int bst_mt_cas_max(bst_mt_cas *bst) {
     if (bst == NULL) {
         return 1;
     }
@@ -192,7 +192,7 @@ static inline int bst_mt_cas_max(bst_mt_cas *bst) {
     return root->value;
 }
 
-static inline int bst_mt_cas_node_find_height(bst_cas_node *root) {
+static inline long long int bst_mt_cas_node_find_height(bst_cas_node *root) {
     if (root == NULL) {
         return -1;
     }
@@ -201,7 +201,7 @@ static inline int bst_mt_cas_node_find_height(bst_cas_node *root) {
                    bst_mt_cas_node_find_height(root->right));
 }
 
-static inline int bst_mt_cas_height(bst_mt_cas *bst) {
+static inline long long int bst_mt_cas_height(bst_mt_cas *bst) {
     if (bst == NULL) {
         return -1;
     }
@@ -209,19 +209,19 @@ static inline int bst_mt_cas_height(bst_mt_cas *bst) {
     return bst_mt_cas_node_find_height(bst->root);
 }
 
-static inline int bst_mt_cas_width(bst_mt_cas *bst) {
+static inline long long int bst_mt_cas_width(bst_mt_cas *bst) {
     if (bst == NULL) {
         return -1;
     }
 
-    int w = 0;
+    long long int w = 0;
     bst_cas_node **q = malloc(sizeof *q * bst->count);
-    int f = 0, r = 0;
+    long long int f = 0, r = 0;
 
     q[r++] = bst->root;
 
     while (f < r) {
-        int count = r - f;
+        long long int count = r - f;
         w = w > count ? w : count;
 
         for (int i = 0; i < count; i++) {
@@ -242,7 +242,7 @@ static inline int bst_mt_cas_width(bst_mt_cas *bst) {
 
 static inline void bst_mt_cas_node_traverse_preorder(bst_cas_node *node) {
     if (node != NULL) {
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
         bst_mt_cas_node_traverse_preorder(node->left);
         bst_mt_cas_node_traverse_preorder(node->right);
     }
@@ -262,7 +262,7 @@ static inline int bst_mt_cas_traverse_preorder(bst_mt_cas *bst) {
 static inline void bst_mt_cas_node_traverse_inorder(bst_cas_node *node) {
     if (node != NULL) {
         bst_mt_cas_node_traverse_inorder(node->left);
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
         bst_mt_cas_node_traverse_inorder(node->right);
     }
 }
@@ -282,7 +282,7 @@ static inline void bst_mt_cas_node_traverse_postorder(bst_cas_node *node) {
     if (node != NULL) {
         bst_mt_cas_node_traverse_postorder(node->left);
         bst_mt_cas_node_traverse_postorder(node->right);
-        printf("%d ", node->value);
+        printf("%lld ", node->value);
     }
 }
 
@@ -306,7 +306,8 @@ static inline bst_cas_node *cas_min_node(bst_cas_node *node) {
     return current;
 }
 
-static inline bst_cas_node *cas_delete_node(bst_cas_node *root, int value) {
+static inline bst_cas_node *cas_delete_node(bst_cas_node *root,
+                                            long long int value) {
     if (root == NULL) {
         return root;
     }
@@ -335,7 +336,7 @@ static inline bst_cas_node *cas_delete_node(bst_cas_node *root, int value) {
     return root;
 }
 
-static inline int bst_mt_cas_delete(bst_mt_cas *bst, int value) {
+static inline int bst_mt_cas_delete(bst_mt_cas *bst, long long int value) {
     if (bst == NULL) {
         return 1;
     }
@@ -346,8 +347,8 @@ static inline int bst_mt_cas_delete(bst_mt_cas *bst, int value) {
     return 0;
 }
 
-static inline void cas_save_inorder(bst_cas_node *node, int *inorder,
-                                    int *index) {
+static inline void cas_save_inorder(bst_cas_node *node, long long int *inorder,
+                                    long long int *index) {
     if (node == NULL)
         return;
     cas_save_inorder(node->left, inorder, index);
@@ -355,11 +356,12 @@ static inline void cas_save_inorder(bst_cas_node *node, int *inorder,
     cas_save_inorder(node->right, inorder, index);
 }
 
-static inline bst_cas_node *cas_array_to_bst(int arr[], int start, int end) {
+static inline bst_cas_node *
+cas_array_to_bst(long long int arr[], long long int start, long long int end) {
     if (start > end)
         return NULL;
 
-    int mid = (start + end) / 2;
+    long long int mid = (start + end) / 2;
     bst_cas_node *node = bst_cas_node_new(arr[mid]);
 
     node->left = cas_array_to_bst(arr, start, mid - 1);
@@ -368,7 +370,7 @@ static inline bst_cas_node *cas_array_to_bst(int arr[], int start, int end) {
     return node;
 }
 
-static inline int cas_node_count(bst_cas_node *root) {
+static inline long long int cas_node_count(bst_cas_node *root) {
     if (root == NULL) {
         return 0;
     } else {
@@ -376,7 +378,7 @@ static inline int cas_node_count(bst_cas_node *root) {
     }
 }
 
-static inline int bst_mt_cas_node_count(bst_mt_cas *bst) {
+static inline long long int bst_mt_cas_node_count(bst_mt_cas *bst) {
     if (bst == NULL) {
         return 0;
     }
@@ -393,8 +395,8 @@ static inline bst_mt_cas *bst_mt_cas_rebalance(bst_mt_cas *bst) {
         return NULL;
     }
 
-    int *inorder = malloc(sizeof(int) * bst->count);
-    int index = 0;
+    long long int *inorder = malloc(sizeof(long long int) * bst->count);
+    long long int index = 0;
     cas_save_inorder(bst->root, inorder, &index);
 
     bst_cas_node_free(bst->root);
@@ -409,11 +411,11 @@ static inline void bst_mt_cas_print_details(bst_mt_cas *bst) {
     if (bst == NULL) {
         return;
     }
-    printf("%ld,", bst->count);
-    printf("%d,", bst_mt_cas_min(bst));
-    printf("%d,", bst_mt_cas_max(bst));
-    printf("%d,", bst_mt_cas_height(bst));
-    printf("%d,", bst_mt_cas_width(bst));
+    printf("%lld,", bst->count);
+    printf("%lld,", bst_mt_cas_min(bst));
+    printf("%lld,", bst_mt_cas_max(bst));
+    printf("%lld,", bst_mt_cas_height(bst));
+    printf("%lld,", bst_mt_cas_width(bst));
 }
 
 #endif
