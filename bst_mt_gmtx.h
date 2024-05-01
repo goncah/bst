@@ -385,4 +385,13 @@ static inline void bst_mt_gmtx_print_details(bst_mt_gmtx *bst) {
     printf("%lld,", bst_mt_gmtx_width(bst));
 }
 
+static inline void bst_mt_gmtx_free(bst_mt_gmtx *bst) {
+    if (bst == NULL) {
+        return;
+    }
+
+    bst_node_free(bst->root);
+    free(bst);
+}
+
 #endif

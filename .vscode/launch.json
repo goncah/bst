@@ -7,9 +7,9 @@
             "request": "launch",
             "program": "${workspaceRoot}/out/test_bst",
             "args": [
-                "gmtx",
-                "10",
-                "1000000"
+                "st",
+                "10000000",
+                "1"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}/out",

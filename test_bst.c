@@ -173,15 +173,19 @@ void bst_test(long long int inserts, int threads, enum bst_type bt,
         switch (bt) {
         case ST:
             bst_st_print_details(bst);
+            bst_st_free(bst);
             break;
         case GMTX:
             bst_mt_gmtx_print_details(bst);
+            bst_mt_gmtx_free(bst);
             break;
         case LMTX:
             bst_mt_lmtx_print_details(bst);
+            bst_mt_lmtx_free(bst);
             break;
         case CAS:
             bst_mt_cas_print_details(bst);
+            bst_mt_cas_free(bst);
             break;
         default:
             return;

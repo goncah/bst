@@ -418,4 +418,13 @@ static inline void bst_mt_cas_print_details(bst_mt_cas *bst) {
     printf("%lld,", bst_mt_cas_width(bst));
 }
 
+static inline void bst_mt_cas_free(bst_mt_cas *bst) {
+    if (bst == NULL) {
+        return;
+    }
+
+    bst_cas_node_free(bst->root);
+    free(bst);
+}
+
 #endif

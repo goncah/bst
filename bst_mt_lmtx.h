@@ -451,4 +451,13 @@ static inline void bst_mt_lmtx_print_details(bst_mt_lmtx *bst) {
     printf("%lld,", bst_mt_lmtx_width(bst));
 }
 
+static inline void bst_mt_lmtx_free(bst_mt_lmtx *bst) {
+    if (bst == NULL) {
+        return;
+    }
+
+    bst_mt_node_free(bst->root);
+    free(bst);
+}
+
 #endif

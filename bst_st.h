@@ -370,4 +370,13 @@ static inline void bst_st_print_details(bst_st *bst) {
     printf("%lld,", bst_st_width(bst));
 }
 
+static inline void bst_st_free(bst_st *bst) {
+    if (bst == NULL) {
+        return;
+    }
+
+    bst_node_free(bst->root);
+    free(bst);
+}
+
 #endif
