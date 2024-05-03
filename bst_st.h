@@ -1,6 +1,6 @@
 /*
 Universidade Aberta
-File: bst_st.h
+File: bst_st_t.h
 Author: Hugo Gonçalves, 2100562
 
 Single-thread BST
@@ -27,356 +27,176 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
-#ifndef __bst_st__
-#define __bst_st__
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef BST_ST_H_
+#define BST_ST_H_
+#include <stdint.h>
 
 #include "bst_common.h"
 
+/**
+ * Holds a tree node with pointer to both children as well as the parent node
+ */
+typedef struct bst_st_node {
+    int64_t value;
+    struct bst_st_node *parent;
+    struct bst_st_node *left;
+    struct bst_st_node *right;
+} bst_st_node_t;
+
+/**
+ * The BST
+ */
 typedef struct bst_st {
-    long long int count;
-    bst_node *root;
-} bst_st;
-
-static inline bst_st *bst_st_new() {
-    bst_st *bst = (bst_st *)malloc(sizeof *bst);
-
-    if (bst == NULL) {
-        PANIC("malloc() failure\n");
-    }
-
-    bst->count = 0;
-    bst->root = NULL;
-
-    return bst;
-}
-
-static inline int bst_st_add(bst_st *bst, long long int value) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    if (bst->root == NULL) {
-        bst->count++;
-        bst->root = bst_node_new(value);
-        return 0;
-    }
-
-    bst_node *root = bst->root;
-    bst->count++;
-    while (root != NULL) {
-        if (value - root->value < 0) {
-            if (root->left == NULL) {
-                root->left = bst_node_new(value);
-                return 0;
-            }
-
-            root = root->left;
-        } else if (value - root->value > 0) {
-            if (root->right == NULL) {
-                root->right = bst_node_new(value);
-                return 0;
-            }
-
-            root = root->right;
-        } else {
-            // Value already exists
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-static inline int bst_st_search(bst_st *bst, long long int value) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    bst_node *root = bst->root;
-
-    while (root != NULL) {
-        if (root->value == value) {
-            return 0;
-        } else if (value - root->value < 0) {
-            root = root->left;
-        } else if (value - root->value > 0) {
-            root = root->right;
-        }
-    }
-
-    return 1;
-}
-
-static inline long long int bst_st_min(bst_st *bst) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    bst_node *root = bst->root;
-
-    if (root == NULL) {
-        return 0;
-    }
-
-    while (root->left != NULL) {
-        root = root->left;
-    }
-
-    return root->value;
-}
-
-static inline long long int bst_st_max(bst_st *bst) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    bst_node *root = bst->root;
-
-    if (root == NULL) {
-        return 0;
-    }
-
-    while (root->right != NULL) {
-        root = root->right;
-    }
-
-    return root->value;
-}
-
-static inline long long int bst_st_node_find_height(bst_node *root) {
-    if (root == NULL) {
-        return -1;
-    }
-
-    return 1 + max(bst_st_node_find_height(root->left),
-                   bst_st_node_find_height(root->right));
-}
-
-static inline long long int bst_st_height(bst_st *bst) {
-    if (bst == NULL) {
-        return -1;
-    }
-
-    return bst_st_node_find_height(bst->root);
-}
-
-static inline long long int bst_st_width(bst_st *bst) {
-    if (bst == NULL) {
-        return -1;
-    }
-
-    long long int w = 0;
-    bst_node **q = malloc(sizeof *q * bst->count);
-    long long int f = 0, r = 0;
-
-    q[r++] = bst->root;
-
-    while (f < r) {
-        long long int count = r - f;
-        w = w > count ? w : count;
-
-        for (int i = 0; i < count; i++) {
-            bst_node *n = q[f++];
-            if (n->left != NULL) {
-                q[r++] = n->left;
-            }
-
-            if (n->right != NULL) {
-                q[r++] = n->right;
-            }
-        }
-    }
-
-    free(q);
-    return w;
-}
-
-static inline void bst_st_node_traverse_preorder(bst_node *node) {
-    if (node != NULL) {
-        printf("%lld ", node->value);
-        bst_st_node_traverse_preorder(node->left);
-        bst_st_node_traverse_preorder(node->right);
-    }
-}
-
-static inline int bst_st_traverse_preorder(bst_st *bst) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    bst_st_node_traverse_preorder(bst->root);
-    printf("\n");
-
-    return 0;
-}
-
-static inline void bst_st_node_traverse_inorder(bst_node *node) {
-    if (node != NULL) {
-        bst_st_node_traverse_inorder(node->left);
-        printf("%lld ", node->value);
-        bst_st_node_traverse_inorder(node->right);
-    }
-}
-
-static inline int bst_st_traverse_inorder(bst_st *bst) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    bst_st_node_traverse_inorder(bst->root);
-    printf("\n");
-
-    return 0;
-}
-
-static inline void bst_st_node_traverse_postorder(bst_node *node) {
-    if (node != NULL) {
-        bst_st_node_traverse_postorder(node->left);
-        bst_st_node_traverse_postorder(node->right);
-        printf("%lld ", node->value);
-    }
-}
-
-static inline int bst_st_traverse_postorder(bst_st *bst) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    bst_st_node_traverse_postorder(bst->root);
-    printf("\n");
-
-    return 0;
-}
-
-static inline bst_node *st_min_node(bst_node *node) {
-    bst_node *current = node;
-
-    while (current && current->left != NULL) {
-        current = current->left;
-    }
-    return current;
-}
-
-static inline bst_node *st_delete_node(bst_node *root, long long int value) {
-    if (root == NULL) {
-        return root;
-    }
-
-    if (value < root->value) {
-        root->left = st_delete_node(root->left, value);
-    } else if (value > root->value) {
-        root->right = st_delete_node(root->right, value);
-    } else {
-        if (root->left == NULL) {
-            bst_node *temp = root->right;
-            free(root);
-            return temp;
-        } else if (root->right == NULL) {
-            bst_node *temp = root->left;
-            free(root);
-            return temp;
-        }
-
-        bst_node *temp = st_min_node(root->right);
-
-        root->value = temp->value;
-
-        root->right = st_delete_node(root->right, temp->value);
-    }
-    return root;
-}
-
-static inline int bst_st_delete(bst_st *bst, long long int value) {
-    if (bst == NULL) {
-        return 1;
-    }
-
-    st_delete_node(bst->root, value);
-    bst->count--;
-
-    return 0;
-}
-
-static inline void st_save_inorder(bst_node *node, long long int *inorder,
-                                   long long int *index) {
-    if (node == NULL)
-        return;
-    st_save_inorder(node->left, inorder, index);
-    inorder[(*index)++] = node->value;
-    st_save_inorder(node->right, inorder, index);
-}
-
-static inline bst_node *
-st_array_to_bst(long long int arr[], long long int start, long long int end) {
-    if (start > end)
-        return NULL;
-
-    long long int mid = (start + end) / 2;
-    bst_node *node = bst_node_new(arr[mid]);
-
-    node->left = st_array_to_bst(arr, start, mid - 1);
-    node->right = st_array_to_bst(arr, mid + 1, end);
-
-    return node;
-}
-
-static inline long long int st_node_count(bst_node *root) {
-    if (root == NULL) {
-        return 0;
-    } else {
-        return st_node_count(root->left) + st_node_count(root->right) + 1;
-    }
-}
-
-static inline int bst_st_node_count(bst_st *bst) {
-    if (bst == NULL) {
-        return 0;
-    }
-
-    return st_node_count(bst->root);
-}
-
-static inline bst_st *bst_st_rebalance(bst_st *bst) {
-    if (bst == NULL) {
-        return NULL;
-    }
-
-    if (bst->root == NULL) {
-        return NULL;
-    }
-
-    long long int *inorder = malloc(sizeof(long long int) * bst->count);
-    long long int index = 0;
-    st_save_inorder(bst->root, inorder, &index);
-
-    bst_node_free(bst->root);
-
-    bst->root = st_array_to_bst(inorder, 0, index - 1);
-
-    free(inorder);
-    return bst;
-}
-
-static inline void bst_st_print_details(bst_st *bst) {
-    if (bst == NULL) {
-        return;
-    }
-    printf("%lld,", bst->count);
-    printf("%lld,", bst_st_min(bst));
-    printf("%lld,", bst_st_max(bst));
-    printf("%lld,", bst_st_height(bst));
-    printf("%lld,", bst_st_width(bst));
-}
-
-static inline void bst_st_free(bst_st *bst) {
-    if (bst == NULL) {
-        return;
-    }
-
-    bst_node_free(bst->root);
-    free(bst);
-}
-
-#endif
+    size_t count;
+    bst_st_node_t *root;
+} bst_st_t;
+
+// Prototypes
+/**
+ * Allocates memory for a new BST ST returning the pointer to it.
+ *
+ * Check the bitmask of err for possible error combinations:
+ * SUCCESS        - pointer to BST is returned.
+ * MALLOC_FAILURE - malloc() failed to allocate memory for the BST.
+ *
+ * @param err NULL (no effect) or allocated pointer to store any errors.
+ * @return bst or NULL if malloc() fails.
+ */
+bst_st_t *bst_st_new(BST_ERROR *err);
+
+/**
+ * Adds a new value to the BST ST.
+ *
+ * @param bst   the BST ST to add the value to.
+ * @param value the value to add.
+ * @return  SUCCESS        - Value added.
+ *          BST_NULL       - when provided bst pointer is null.
+ *          MALLOC_FAILURE - when malloc fails to allocate memory for a new tree
+ *                           node.
+ *          VALUE_EXISTS   - when the value already exists.
+ *          UNKNOWN        - should never get here.
+ */
+BST_ERROR bst_st_add(bst_st_t *bst, int64_t value);
+
+/**
+ * Searches the BST for the given value.
+ *
+ * @param bst   the BST to search the value.
+ * @param value the value to search.
+ * @return  BST_NULL          - when provided bst pointer is null.
+ *          VALUE_EXISTS      - value exists in the BST.
+ *          VALUE_NONEXISTENT - value does not exist in the BST.
+ */
+BST_ERROR bst_st_search(bst_st_t *bst, int64_t value);
+
+/**
+ * Finds and places in value the min value in the BST.
+ *
+ * @param bst   the BST to search the min value.
+ * @param value non-null allocated pointer to store the min value.
+ * @return  BST_NULL  - when provided bst pointer is null.
+ *          BST_EMPTY - when provided bst is empty.
+ *          SUCCESS   - min is placed in value if not NULL.
+ */
+BST_ERROR bst_st_min(bst_st_t *bst, int64_t *value);
+
+/**
+ * Finds and places in value the max value in the BST.
+ *
+ * @param bst   the BST to search the max value.
+ * @param value pointer to store the max value, memory must be pre-allocated.
+ * @return  BST_NULL  - when provided bst pointer is null.
+ *          BST_EMPTY - when provided bst is empty.
+ *          SUCCESS   - max is placed in value if not NULL.
+ */
+BST_ERROR bst_st_max(bst_st_t *bst, int64_t *value);
+
+/**
+ * Calculates and places in value the BST height.
+ *
+ * @param bst   the BST to calculate the height.
+ * @param value pointer to store the BST height, memory must be pre-allocated.
+ * @return  BST_NULL  - when provided bst pointer is null.
+ *          BST_EMPTY - when provided bst is empty.
+ *          SUCCESS   - height is placed in value if not NULL.
+ */
+BST_ERROR bst_st_height(bst_st_t *bst, size_t *value);
+
+/**
+ * Calculates and places in value the BST width.
+ *
+ * @param bst   the BST to calculate the width.
+ * @param value pointer to store the BST width, memory must be pre-allocated.
+ * @return  BST_NULL       - when provided bst pointer is null.
+ *          MALLOC_FAILURE - a queue is allocated to traverse the tree, this
+ *                           error is returned when malloc() fails.
+ *          BST_EMPTY      - when provided bst is empty.
+ *          SUCCESS        - height is placed in value if not NULL.
+ */
+BST_ERROR bst_st_width(bst_st_t *bst, size_t *value);
+
+/**
+ * Traverse and print the BST nodes preorder.
+ *
+ * @param bst the BST to traverse.
+ * @return  BST_NULL  - when provided bst pointer is null.
+ *          BST_EMPTY - when provided bst is empty.
+ *          SUCCESS   - elements are written to stdout.
+ */
+BST_ERROR bst_st_traverse_preorder(bst_st_t *bst);
+
+/**
+ * Traverse and print the BST nodes inorder.
+ *
+ * @param bst the BST to traverse.
+ * @return  BST_NULL  - when provided bst pointer is null.
+ *          BST_EMPTY - when provided bst is empty.
+ *          SUCCESS   - elements are written to stdout.
+ */
+BST_ERROR bst_st_traverse_inorder(bst_st_t *bst);
+
+/**
+ * Traverse and print the BST nodes postorder.
+ *
+ * @param bst the BST to traverse.
+ * @return  BST_NULL  - when provided bst pointer is null.
+ *          BST_EMPTY - when provided bst is empty.
+ *          SUCCESS   - elements are written to stdout.
+ */
+BST_ERROR bst_st_traverse_postorder(bst_st_t *bst);
+
+/**
+ * Attempt to find and delete value from bst.
+ *
+ * @param bst   the BST to find and delete the value from.
+ * @param value the value to delete.
+ * @return  BST_NULL          - when provided bst pointer is null.
+ *          BST_EMPTY         - when provided bst is empty.
+ *          VALUE_NONEXISTENT - value not found.
+ *          SUCCESS           - value found and deleted.
+ */
+BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value);
+
+/**
+ * Height rebalance BST ST.
+ *
+ * @param bst the bst to rebalance.
+ * @return  BST_NULL          - when provided bst pointer is null.
+ *          BST_EMPTY         - when provided bst is empty.
+ *          MALLOC_FAILURE    - when malloc() fails. can happen for when
+ *                              allocating the array to store values during
+ *                              rebalance or when creating a new node. BST and
+ *                              all nodes are freed.
+ *          SUCCESS           - BST rebalanced.
+ */
+BST_ERROR bst_st_rebalance(bst_st_t *bst);
+
+/**
+ * Frees a BST.
+ *
+ * @param bst the bst to free.
+ * @return  BST_NULL          - when provided bst pointer is null.
+ *          SUCCESS           - bst and all nodes freed.
+ */
+BST_ERROR bst_st_free(bst_st_t *bst);
+#endif // BST_ST_H_
