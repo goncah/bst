@@ -58,9 +58,14 @@ typedef struct bst_mt_grwl {
  * Allocates memory for a new BST returning the pointer to it.
  *
  * Check the bitmask of err for possible error combinations:
- * SUCCESS               - pointer to BST is returned.
- * MALLOC_FAILURE        - malloc() failed to allocate memory for the BST.
- * PT_MUTEX_INIT_FAILURE - pthread_mutex_init() failed, BST is freed.
+ * SUCCESS                    - pointer to BST is returned.
+ *
+ * MALLOC_FAILURE             - malloc() failed to allocate memory for the BST.
+ *
+ * PT_RWLOCK_ATTR_INIT_FAILURE - Failed to init the RwLock Attributes. BST is
+ *  freed.
+ *
+ * PT_RWLOCK_INIT_FAILURE      - Failed to init the RwLock, BST is freed.
  *
  * @param err NULL (no effect) or allocated pointer to store any errors
  * @return bst or NULL if malloc() fails
@@ -72,21 +77,25 @@ bst_mt_grwl_t *bst_mt_grwl_new(BST_ERROR *err);
  *
  * @param bst the BST ST to add the value to
  * @param value the value to add
- * @return  SUCCESS                 - Value added.
- *          BST_NULL                - when provided bst pointer is null.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex, no
- *                                    changes to the BST.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex.
- *                                    Can be paired with MALLOC_FAILURE,
- *                                    SUCCESS, VALUE_EXISTS or UNKNOWN. If
- *                                    paired only with MALLOC_FAILURE no changes
- *                                    were done to the BST, if paired with
- *                                    SUCCESS, the value was inserted but
- *                                    the mutex was not unlocked.
- *          MALLOC_FAILURE          - when malloc fails to allocate memory
- *                                    for a new tree node.
- *          VALUE_EXISTS            - when the value already exists.
- *          UNKNOWN                 - should never get here.
+ * @return
+ * SUCCESS                  - Value added.
+ *
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, no changes
+ *  to the BST.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock. Can be
+ *  paired with MALLOC_FAILURE, SUCCESS, VALUE_EXISTS or UNKNOWN. If paired only
+ *  with MALLOC_FAILURE no changes were done to the BST, if paired with SUCCESS,
+ *  the value was inserted but the RwLock was not unlocked.
+ *
+ * MALLOC_FAILURE           - when malloc fails to allocate memory for
+ *  a new tree node.
+ *
+ * VALUE_EXISTS             - when the value already exists.
+ *
+ * UNKNOWN                  - should never get here.
  */
 BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value);
 
@@ -96,14 +105,19 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value);
  *
  * @param bst the BST to search the value
  * @param value the value to search
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY, VALUE_EXISTS
- *                                    or VALUE_NONEXISTENT.
- *          VALUE_EXISTS            - value exists in the BST
- *          VALUE_NONEXISTENT       - value does not exist in the BST
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, VALUE_EXISTS or VALUE_NONEXISTENT.
+ *
+ * VALUE_EXISTS             - value exists in the BST.
+ *
+ * VALUE_NONEXISTENT        - value does not exist in the BST.
  */
 BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t *bst, int64_t value);
 
@@ -113,15 +127,19 @@ BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t *bst, int64_t value);
  *
  * @param bst   the BST to search the min value
  * @param value pointer to store the min value, memory must be pre-allocated
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY or SUCCESS.
- *                                    If paired with success, min is stored in
- *                                    value, if value not NULL
- *          SUCCESS                 - min is stored in value, if value not NULL
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY or SUCCESS. If paired with success, min is stored in
+ *  value, if value not NULL.
+ *
+ * SUCCESS                  - min is stored in value, if value not NULL
  */
 BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t *bst, int64_t *value);
 
@@ -130,15 +148,19 @@ BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t *bst, int64_t *value);
  * no write operations are permitted during execution.
  * @param bst   the BST to search the max value
  * @param value pointer to store the max value, memory must be pre-allocated
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY or SUCCESS.
- *                                    If paired with success, max is stored in
- *                                    value, if value not NULL
- *          SUCCESS                 - max is stored in value, if value not NULL
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY or SUCCESS. If paired with success, max is stored in
+ *  value, if value not NULL.
+ *
+ * SUCCESS                  - max is stored in value, if value not NULL.
  */
 BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t *bst, int64_t *value);
 
@@ -149,14 +171,17 @@ BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t *bst, int64_t *value);
  * @param bst   the BST to search the total number of tree nodes.
  * @param value pointer to store the total number of tree nodes, memory must be
  * pre-allocated.
- * @return  BST_NULL                - when provided bst pointer is null.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with SUCCESS. If paired with
- *                                    success, max is stored in value, if value
- *                                    not NULL.
- *          SUCCESS                 - max is stored in value, if value not NULL.
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with SUCCESS. If paired with success, max is stored in value, if
+ *  value is not NULL.
+ *
+ * SUCCESS                  - max is stored in value, if value not NULL.
  */
 BST_ERROR bst_mt_grwl_node_count(bst_mt_grwl_t *bst, size_t *value);
 
@@ -166,22 +191,23 @@ BST_ERROR bst_mt_grwl_node_count(bst_mt_grwl_t *bst, size_t *value);
  *
  * @param bst the BST to calculate the height
  * @param value pointer to store the BST height, memory must be pre-allocated
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY,
- *                                    MALLOC_FAILURE or SUCCESS. If paired with
- *                                    SUCCESS, value is still written. If paired
- *                                    with MALLOC_FAILURE or BST_EMPTY value is
- *                                    not written. When paired MALLOC_FAILURE,
- *                                    it means that a stack used to traverse the
- *                                    tree failed to be allocated.
- *                                    If paired with success, height is stored
- *                                    in value, if value not NULL
- *          SUCCESS                 - height is stored in value, if value not
- *                                    NULL
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock,
+ *                            value is not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with SUCCESS,
+ *  value is still written. If paired with MALLOC_FAILURE or BST_EMPTY value is
+ *  not written. When paired MALLOC_FAILURE, it means that a stack used to
+ *  traverse the tree failed to be allocated. If paired with success, height
+ *  is stored in value, if value not NULL.
+ *
+ * SUCCESS                  - height is stored in value, if value not
+ *  NULL.
  */
 BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t *bst, size_t *value);
 
@@ -191,22 +217,23 @@ BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t *bst, size_t *value);
  *
  * @param bst   the BST to calculate the width.
  * @param value pointer to store the BST width, memory must be pre-allocated.
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY,
- *                                    MALLOC_FAILURE or SUCCESS. If paired with
- *                                    SUCCESS, value is still written. If paired
- *                                    with MALLOC_FAILURE or BST_EMPTY value is
- *                                    not written. When paired MALLOC_FAILURE,
- *                                    it means that a queue used to traverse the
- *                                    tree failed to be allocated.
- *                                    If paired with success, width is stored in
- *                                    value, if value not NULL.
- *          SUCCESS                 - width is stored in value, if value not
- *                                    NULL.
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with SUCCESS,
+ *  value is still written. If paired with MALLOC_FAILURE or BST_EMPTY value is
+ *  not written. When paired MALLOC_FAILURE, it means that a queue used to
+ *  traverse the tree failed to be allocated. If paired with success, width is
+ *  stored in value, if value not NULL.
+ *
+ * SUCCESS                  - width is stored in value, if value not
+ *                            NULL.
  */
 BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t *bst, size_t *value);
 
@@ -215,21 +242,22 @@ BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t *bst, size_t *value);
  * no write operations are permitted during traverse.
  *
  * @param bst the BST to traverse
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY,
- *                                    MALLOC_FAILURE or SUCCESS. If paired
- *                                    with MALLOC_FAILURE or BST_EMPTY elements
- *                                    are not written. When paired with
- *                                    MALLOC_FAILURE, it means that a queue used
- *                                    to traverse the tree failed to be
- *                                    allocated.
- *                                    If paired with SUCCESS, elements are
- *                                    written to stdout in preorder.
- *          SUCCESS                 - elements written to stdout in preorder.
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with
+ *  MALLOC_FAILURE or BST_EMPTY elements are not written. When paired with
+ *  MALLOC_FAILURE, it means that a queue used to traverse the tree failed to be
+ *  allocated. If paired with SUCCESS, elements are written to stdout in
+ *  preorder.
+ *
+ * SUCCESS                 - elements written to stdout in preorder.
  */
 BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t *bst);
 
@@ -238,21 +266,22 @@ BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t *bst);
  * no write operations are permitted during traverse.
  *
  * @param bst the BST to traverse
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY,
- *                                    MALLOC_FAILURE or SUCCESS. If paired
- *                                    with MALLOC_FAILURE or BST_EMPTY elements
- *                                    are not written. When paired with
- *                                    MALLOC_FAILURE, it means that a queue used
- *                                    to traverse the tree failed to be
- *                                    allocated.
- *                                    If paired with SUCCESS, elements are
- *                                    written to stdout in preorder.
- *          SUCCESS                 - elements written to stdout in inorder.
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with
+ *  MALLOC_FAILURE or BST_EMPTY elements are not written. When paired with
+ *  MALLOC_FAILURE, it means that a queue used to traverse the tree failed to be
+ *  allocated. If paired with SUCCESS, elements are written to stdout in
+ *  inorder.
+ *
+ * SUCCESS                 - elements written to stdout in inorder.
  */
 BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t *bst);
 
@@ -261,21 +290,22 @@ BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t *bst);
  * no write operations are permitted during traverse.
  *
  * @param bst the BST to traverse
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY,
- *                                    MALLOC_FAILURE or SUCCESS. If paired
- *                                    with MALLOC_FAILURE or BST_EMPTY elements
- *                                    are not written. When paired with
- *                                    MALLOC_FAILURE, it means that a queue used
- *                                    to traverse the tree failed to be
- *                                    allocated.
- *                                    If paired with SUCCESS, elements are
- *                                    written to stdout in preorder.
- *          SUCCESS                 - elements written to stdout in postorder.
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with
+ *  MALLOC_FAILURE or BST_EMPTY elements are not written. When paired with
+ *  MALLOC_FAILURE, it means that a queue used to traverse the tree failed to be
+ *  allocated. If paired with SUCCESS, elements are written to stdout in
+ *  postorder.
+ *
+ * SUCCESS                 - elements written to stdout in postorder.
  */
 BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t *bst);
 
@@ -285,16 +315,21 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t *bst);
  *
  * @param bst the BST to find and delete the value from.
  * @param value the value to delete.
- * @return  BST_NULL                - when provided bst pointer is null.
- *          BST_EMPTY               - when provided bst is empty.
- *          PT_MUTEX_LOCK_FAILURE   - when failed to lock the global mutex,
- *                                    value is not written.
- *          PT_MUTEX_UNLOCK_FAILURE - when failed to unlock the global mutex,
- *                                    can be paired with BST_EMPTY,
- *                                    VALUE_NONEXISTENT or SUCCESS. If paired
- *                                    with SUCCESS, value is still removed.
- *          VALUE_NONEXISTENT       - value not found.
- *          SUCCESS                 - value removed.
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
+ *  not written.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, VALUE_NONEXISTENT or SUCCESS. If paired with SUCCESS,
+ *  value is still removed.
+ *
+ * VALUE_NONEXISTENT        - value not found.
+ *
+ * SUCCESS                  - value removed.
  */
 BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t *bst, int64_t value);
 
@@ -302,23 +337,26 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t *bst, int64_t value);
  * Height rebalance BST ST.
  *
  * @param bst the bst to rebalance.
- * @return  BST_NULL                 - when provided bst pointer is null.
- *          BST_EMPTY                - when provided bst is empty.
- *          MALLOC_FAILURE           - when malloc() fails. can happen for when
- *                                     allocating the array to store values
- *                                     during rebalance or when creating a new
- *                                     node. BST and all nodes are freed.
- *          PT_MUTEX_LOCK_FAILURE    - when failed to lock the global mutex,
- *                                     value is not written. No changes to the
- *                                     BST.
- *          PT_MUTEX_UNLOCK_FAILURE  - when failed to unlock the global mutex,
- *                                     can be paired with BST_EMPTY,
- *                                     MALLOC_FAILURE or SUCCESS.
- *          PT_MUTEX_DESTROY_FAILURE - when failed to destroy the bst global
- *                                     mutex. Can be paired with MALLOC_FAILURE
- *                                     or PT_MUTEX_UNLOCK_FAILURE. In both cases
- *                                     BST and all nodes are freed.
- *          SUCCESS                  - BST rebalanced.
+ * @return
+ * BST_NULL                 - when provided bst pointer is null.
+ *
+ * BST_EMPTY                - when provided bst is empty.
+ *
+ * MALLOC_FAILURE           - when malloc() fails. can happen for when
+ *  allocating the array to store values during rebalance or when creating a new
+ *  node. BST and all nodes are freed.
+ *
+ * PT_RWLOCK_LOCK_FAILURE    - when failed to lock the global RwLock, value is
+ *  not written. No changes to the BST.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE  - when failed to unlock the global RwLock, can be
+ *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS.
+ *
+ * PT_RWLOCK_DESTROY_FAILURE - when failed to destroy the bst global RwLock.
+ *  Can be paired with MALLOC_FAILURE or PT_RWLOCK_UNLOCK_FAILURE. In both cases
+ *  BST and all nodes are freed.
+ *
+ * SUCCESS                  - BST rebalanced.
  */
 BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst);
 
@@ -326,14 +364,19 @@ BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst);
  * Frees a BST.
  *
  * @param bst the bst to free.
- * @return  BST_NULL                 - when provided bst pointer is null.
- *          PT_MUTEX_LOCK_FAILURE    - when failed to lock the global mutex, no
- *                                     changes to the BST.
- *          PT_MUTEX_UNLOCK_FAILURE  - when failed to unlock the global mutex,
- *                                     all nodes are freed but the BST is not.
- *          PT_MUTEX_DESTROY_FAILURE - when failed to destroy the global mutex,
- *                                     all nodes are freed but the BST is not.
- *          SUCCESS                  - bst and all nodes freed.
+ * @return
+ * BST_NULL                  - when provided bst pointer is null.
+ *
+ * PT_RWLOCK_LOCK_FAILURE    - when failed to lock the global RwLock, no changes
+ * to the BST.
+ *
+ * PT_RWLOCK_UNLOCK_FAILURE  - when failed to unlock the global RwLock, all
+ *  nodes are freed but the BST is not.
+ *
+ * PT_RWLOCK_DESTROY_FAILURE - when failed to destroy the global RwLock, all
+ * nodes are freed but the BST is not.
+ *
+ * SUCCESS                   - bst and all nodes freed.
  */
 BST_ERROR bst_mt_grwl_free(bst_mt_grwl_t *bst);
 #endif // BST_MT_GRWL_H_

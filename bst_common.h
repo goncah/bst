@@ -61,11 +61,9 @@ typedef enum BST_ERROR {
     PT_RWLOCK_INIT_FAILURE         = (1u << 9),
     PT_RWLOCK_DESTROY_FAILURE      = (1u << 10),
     PT_RWLOCK_ATTR_INIT_FAILURE    = (1u << 11),
-    PT_RWLOCK_READ_LOCK_FAILURE    = (1u << 12),
-    PT_RWLOCK_READ_UNLOCK_FAILURE  = (1u << 13),
-    PT_RWLOCK_WRITE_LOCK_FAILURE   = (1u << 14),
-    PT_RWLOCK_WRITE_UNLOCK_FAILURE = (1u << 15),
-    UNKNOWN                        = (1u << 16)
+    PT_RWLOCK_LOCK_FAILURE         = (1u << 12),
+    PT_RWLOCK_UNLOCK_FAILURE       = (1u << 13),
+    UNKNOWN                        = (1u << 14)
 } BST_ERROR;
 // clang-format on
 

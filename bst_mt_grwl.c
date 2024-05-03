@@ -117,7 +117,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
     }
 
     if (pthread_rwlock_wrlock(&bst->rwl)) {
-        return PT_RWLOCK_WRITE_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
@@ -129,14 +129,14 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
             bst->count++;
 
             if (pthread_rwlock_unlock(&bst->rwl)) {
-                return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
+                return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
             }
 
             return SUCCESS;
         }
 
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_WRITE_UNLOCK_FAILURE | err;
+            return PT_RWLOCK_UNLOCK_FAILURE | err;
         }
 
         return err;
@@ -156,14 +156,14 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
                     bst->count++;
 
                     if (pthread_rwlock_unlock(&bst->rwl)) {
-                        return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
+                        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
                     }
 
                     return SUCCESS;
                 }
 
                 if (pthread_rwlock_unlock(&bst->rwl)) {
-                    return PT_RWLOCK_WRITE_UNLOCK_FAILURE | err;
+                    return PT_RWLOCK_UNLOCK_FAILURE | err;
                 }
 
                 return err;
@@ -181,14 +181,14 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
                     bst->count++;
 
                     if (pthread_rwlock_unlock(&bst->rwl)) {
-                        return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
+                        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
                     }
 
                     return SUCCESS;
                 }
 
                 if (pthread_rwlock_unlock(&bst->rwl)) {
-                    return PT_RWLOCK_WRITE_UNLOCK_FAILURE | err;
+                    return PT_RWLOCK_UNLOCK_FAILURE | err;
                 }
 
                 return err;
@@ -198,7 +198,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
         } else {
             // Value already exists
             if (pthread_rwlock_unlock(&bst->rwl)) {
-                return PT_RWLOCK_WRITE_UNLOCK_FAILURE | VALUE_EXISTS;
+                return PT_RWLOCK_UNLOCK_FAILURE | VALUE_EXISTS;
             }
 
             return VALUE_EXISTS;
@@ -207,7 +207,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
 
     // Should never get here
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_WRITE_UNLOCK_FAILURE | UNKNOWN;
+        return PT_RWLOCK_UNLOCK_FAILURE | UNKNOWN;
     }
 
     return UNKNOWN;
@@ -219,12 +219,12 @@ BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t *bst, int64_t value) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
         return BST_EMPTY;
     }
@@ -234,7 +234,7 @@ BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t *bst, int64_t value) {
     while (root != NULL) {
         if (root->value == value) {
             if (pthread_rwlock_unlock(&bst->rwl)) {
-                return PT_RWLOCK_READ_UNLOCK_FAILURE | VALUE_EXISTS;
+                return PT_RWLOCK_UNLOCK_FAILURE | VALUE_EXISTS;
             }
 
             return VALUE_EXISTS;
@@ -246,7 +246,7 @@ BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t *bst, int64_t value) {
     }
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | VALUE_NONEXISTENT;
+        return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NONEXISTENT;
     }
 
     return VALUE_NONEXISTENT;
@@ -258,12 +258,12 @@ BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t *bst, int64_t *value) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
         return BST_EMPTY;
     }
@@ -279,7 +279,7 @@ BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t *bst, int64_t *value) {
     }
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -291,12 +291,12 @@ BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t *bst, int64_t *value) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
         return BST_EMPTY;
     }
@@ -312,7 +312,7 @@ BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t *bst, int64_t *value) {
     }
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -324,7 +324,7 @@ BST_ERROR bst_mt_grwl_node_count(bst_mt_grwl_t *bst, size_t *value) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (value != NULL) {
@@ -332,7 +332,7 @@ BST_ERROR bst_mt_grwl_node_count(bst_mt_grwl_t *bst, size_t *value) {
     }
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -344,12 +344,12 @@ BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t *bst, size_t *value) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
 
         return BST_EMPTY;
@@ -366,7 +366,7 @@ BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t *bst, size_t *value) {
 
     if (stack == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | MALLOC_FAILURE;
+            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
         }
 
         return MALLOC_FAILURE;
@@ -408,7 +408,7 @@ BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t *bst, size_t *value) {
     }
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -420,12 +420,12 @@ BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t *bst, size_t *value) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
 
         return BST_EMPTY;
@@ -436,7 +436,7 @@ BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t *bst, size_t *value) {
 
     if (q == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | MALLOC_FAILURE;
+            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
         }
 
         return MALLOC_FAILURE;
@@ -473,7 +473,7 @@ BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t *bst, size_t *value) {
     }
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -485,12 +485,12 @@ BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t *bst) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
 
         return BST_EMPTY;
@@ -500,7 +500,7 @@ BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t *bst) {
     bst_mt_grwl_node_t **stack = malloc(sizeof **stack * bst->count);
     if (stack == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | MALLOC_FAILURE;
+            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
         }
 
         return MALLOC_FAILURE;
@@ -529,7 +529,7 @@ BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t *bst) {
     free(stack);
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -541,12 +541,12 @@ BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t *bst) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
 
         return BST_EMPTY;
@@ -556,7 +556,7 @@ BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t *bst) {
     bst_mt_grwl_node_t **stack = malloc(sizeof **stack * bst->count);
     if (stack == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | MALLOC_FAILURE;
+            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
         }
 
         return MALLOC_FAILURE;
@@ -588,7 +588,7 @@ BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t *bst) {
     free(stack);
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -600,12 +600,12 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t *bst) {
     }
 
     if (pthread_rwlock_rdlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
 
         return BST_EMPTY;
@@ -615,7 +615,7 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t *bst) {
     bst_mt_grwl_node_t **stack1 = malloc(sizeof **stack1 * bst->count);
     if (stack1 == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | MALLOC_FAILURE;
+            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
         }
 
         return MALLOC_FAILURE;
@@ -624,7 +624,7 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t *bst) {
     bst_mt_grwl_node_t **stack2 = malloc(sizeof **stack2 * bst->count);
     if (stack2 == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_READ_UNLOCK_FAILURE | MALLOC_FAILURE;
+            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
         }
 
         return MALLOC_FAILURE;
@@ -663,7 +663,7 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t *bst) {
     free(stack2);
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_READ_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -675,12 +675,12 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t *bst, int64_t value) {
     }
 
     if (pthread_rwlock_wrlock(&bst->rwl)) {
-        return PT_RWLOCK_WRITE_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_WRITE_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
 
         return BST_EMPTY;
@@ -701,7 +701,7 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t *bst, int64_t value) {
 
     if (current == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_WRITE_UNLOCK_FAILURE | VALUE_NONEXISTENT;
+            return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NONEXISTENT;
         }
 
         return VALUE_NONEXISTENT;
@@ -742,7 +742,7 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t *bst, int64_t value) {
     bst->count--;
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
+        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
     }
 
     return SUCCESS;
@@ -831,12 +831,12 @@ BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst) {
     }
 
     if (pthread_rwlock_wrlock(&bst->rwl)) {
-        return PT_RWLOCK_WRITE_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     if (bst->root == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_WRITE_UNLOCK_FAILURE | BST_EMPTY;
+            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
         }
 
         return BST_EMPTY;
@@ -846,7 +846,7 @@ BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst) {
 
     if (inorder == NULL) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_WRITE_UNLOCK_FAILURE | MALLOC_FAILURE;
+            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
         }
         return MALLOC_FAILURE;
     }
@@ -864,7 +864,7 @@ BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst) {
         free(inorder);
 
         if (pthread_rwlock_unlock(&bst->rwl)) {
-            return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
+            return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
         }
         return SUCCESS;
     }
@@ -874,7 +874,7 @@ BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst) {
     if (pthread_rwlock_unlock(&bst->rwl)) {
         free(bst);
 
-        return PT_RWLOCK_WRITE_UNLOCK_FAILURE | err;
+        return PT_RWLOCK_UNLOCK_FAILURE | err;
     }
 
     if (pthread_rwlock_destroy(&bst->rwl)) {
@@ -892,7 +892,7 @@ BST_ERROR bst_mt_grwl_free(bst_mt_grwl_t *bst) {
     }
 
     if (pthread_rwlock_wrlock(&bst->rwl)) {
-        return PT_RWLOCK_WRITE_LOCK_FAILURE;
+        return PT_RWLOCK_LOCK_FAILURE;
     }
 
     bst_mt_grwl_node_free(bst->root);
@@ -900,7 +900,7 @@ BST_ERROR bst_mt_grwl_free(bst_mt_grwl_t *bst) {
     bst->count = 0;
 
     if (pthread_rwlock_unlock(&bst->rwl)) {
-        return PT_RWLOCK_WRITE_UNLOCK_FAILURE;
+        return PT_RWLOCK_UNLOCK_FAILURE;
     }
 
     if (pthread_rwlock_destroy(&bst->rwl)) {
