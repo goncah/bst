@@ -3,7 +3,7 @@ Universidade Aberta
 File: bst_st_t.h
 Author: Hugo Gonçalves, 2100562
 
-Single-thread BST
+Single-thread MT Unsafe BST
 
 MIT License
 
@@ -34,7 +34,7 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 
 /**
- * Holds a tree node with pointer to both children as well as the parent node
+ * Holds a tree node with pointer to both children nodes
  */
 typedef struct bst_st_node {
     int64_t value;

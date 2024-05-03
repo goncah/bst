@@ -3,7 +3,7 @@ Universidade Aberta
 File: bst_st_t.c
 Author: Hugo Gonçalves, 2100562
 
-Single-thread BST
+Single-thread MT Unsafe BST
 
 MIT License
 
@@ -34,8 +34,7 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 #include "bst_st.h"
 
-bst_st_node_t *bst_st_node_new(int64_t value, bst_st_node_t *parent,
-                               BST_ERROR *err) {
+bst_st_node_t *bst_st_node_new(int64_t value, BST_ERROR *err) {
     bst_st_node_t *node = (bst_st_node_t *)malloc(sizeof *node);
 
     if (node == NULL) {
@@ -83,7 +82,7 @@ BST_ERROR bst_st_add(bst_st_t *bst, int64_t value) {
 
     if (bst->root == NULL) {
         BST_ERROR err;
-        bst_st_node_t *node = bst_st_node_new(value, NULL, &err);
+        bst_st_node_t *node = bst_st_node_new(value, &err);
 
         if (IS_SUCCESS(err)) {
             bst->root = node;
@@ -101,7 +100,7 @@ BST_ERROR bst_st_add(bst_st_t *bst, int64_t value) {
         if (value - root->value < 0) {
             if (root->left == NULL) {
                 BST_ERROR err;
-                bst_st_node_t *node = bst_st_node_new(value, root, &err);
+                bst_st_node_t *node = bst_st_node_new(value, &err);
 
                 if (IS_SUCCESS(err)) {
                     root->left = node;
@@ -117,7 +116,7 @@ BST_ERROR bst_st_add(bst_st_t *bst, int64_t value) {
         } else if (value - root->value > 0) {
             if (root->right == NULL) {
                 BST_ERROR err;
-                bst_st_node_t *node = bst_st_node_new(value, root, &err);
+                bst_st_node_t *node = bst_st_node_new(value, &err);
 
                 if (IS_SUCCESS(err)) {
                     root->right = node;
@@ -465,7 +464,7 @@ void bst_node_free(bst_st_node_t *root) {
 }
 
 bst_st_node_t *array_to_bst(int64_t arr[], int64_t start, int64_t end,
-                            bst_st_node_t *parent, BST_ERROR *err) {
+                            BST_ERROR *err) {
     if (start > end) {
         if (err != NULL) {
             *err = SUCCESS;
@@ -477,13 +476,13 @@ bst_st_node_t *array_to_bst(int64_t arr[], int64_t start, int64_t end,
 
     BST_ERROR e;
 
-    bst_st_node_t *node = bst_st_node_new(arr[mid], parent, &e);
+    bst_st_node_t *node = bst_st_node_new(arr[mid], &e);
 
     if (IS_SUCCESS(e)) {
-        node->left = array_to_bst(arr, start, mid - 1, node, &e);
+        node->left = array_to_bst(arr, start, mid - 1, &e);
 
         if (IS_SUCCESS(e)) {
-            node->right = array_to_bst(arr, mid + 1, end, node, &e);
+            node->right = array_to_bst(arr, mid + 1, end, &e);
 
             if (IS_SUCCESS(e)) {
                 if (err != NULL) {
@@ -538,7 +537,7 @@ BST_ERROR bst_st_rebalance(bst_st_t *bst) {
     bst_node_free(bst->root);
 
     BST_ERROR err;
-    bst->root = array_to_bst(inorder, 0, index - 1, NULL, &err);
+    bst->root = array_to_bst(inorder, 0, index - 1, &err);
 
     if (IS_SUCCESS(err)) {
         bst->count = index;

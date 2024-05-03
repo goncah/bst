@@ -1,9 +1,14 @@
 /*
 Universidade Aberta
-File: bst_mt_lmtx_t.h
+File: bst_mt_lrwl_t.h
 Author: Hugo Gonçalves, 2100562
 
-Multi-thread BST using a local mutex
+MT Safe BST using a both a global and a local RwLock, the latter with write
+preference. This further improves the insert performance due to no global
+lock on insert. The global RwLock is used inverted meaning that insert
+operation will read lock it and all other will write lock it. The local
+RwLock is write locked when inserting/deleting and read locked on all
+other operations.
 
 MIT License
 
@@ -27,31 +32,28 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
-#ifndef BST_MT_LMTX_H_
-#define BST_MT_LMTX_H_
+#ifndef BST_MT_LRWL_H_
+#define BST_MT_LRWL_H_
 #include <pthread.h>
 #include <stdint.h>
 
 #include "bst_common.h"
 
 /**
- * Holds a tree node with pointer to both children as well as the parent node
+ * Holds a tree node with pointer to both children nodes
  */
-typedef struct bst_mt_lmtx_node {
+typedef struct bst_mt_lrwl_node {
     int64_t value;
-    struct bst_mt_lmtx_node *parent;
-    struct bst_mt_lmtx_node *left;
-    struct bst_mt_lmtx_node *right;
-    pthread_mutex_t mtx;
-} bst_mt_lmtx_node_t;
+    struct bst_mt_lrwl_node *left;
+    struct bst_mt_lrwl_node *right;
+    pthread_rwlock_t rwl;
+} bst_mt_lrwl_node_t;
 
 /**
  * The BST
  */
-typedef struct bst_mt_lmtx {
-    bst_mt_lmtx_node_t *root;
-    pthread_mutex_t mtx; // Still need a global mutex to control concurrency
-                         // when adding the root node
+typedef struct bst_mt_lrwl {
+    bst_mt_lrwl_node_t *root;
     pthread_rwlock_t
         rwl; // Inverted usage of the RwLock, this allows to have fine-grained
              // locking on insert with local mutex and a read lock on the RwLock
@@ -59,7 +61,7 @@ typedef struct bst_mt_lmtx {
              // during execution will request a write lock. RwLock is configured
              // to prefer write, otherwise, under heavy contention, only inserts
              // are executed.
-} bst_mt_lmtx_t;
+} bst_mt_lrwl_t;
 
 // Prototypes
 /**
@@ -86,7 +88,7 @@ typedef struct bst_mt_lmtx {
  * @param err NULL (no effect) or allocated pointer to store any errors
  * @return NULL or BST
  */
-bst_mt_lmtx_t *bst_mt_lmtx_new(BST_ERROR *err);
+bst_mt_lrwl_t *bst_mt_lrwl_new(BST_ERROR *err);
 
 /**
  * Adds a new value to the BST - Thread safe.
@@ -118,7 +120,7 @@ bst_mt_lmtx_t *bst_mt_lmtx_new(BST_ERROR *err);
  *          VALUE_EXISTS                  - when the value already exists.
  *          UNKNOWN                       - should never get here.
  */
-BST_ERROR bst_mt_lmtx_add(bst_mt_lmtx_t *bst, int64_t value);
+BST_ERROR bst_mt_lrwl_add(bst_mt_lrwl_t *bst, int64_t value);
 
 /**
  * Searches the BST for the given value- Thread safe,
@@ -137,7 +139,7 @@ BST_ERROR bst_mt_lmtx_add(bst_mt_lmtx_t *bst, int64_t value);
  *          VALUE_EXISTS                   - value exists in the BST
  *          VALUE_NONEXISTENT              - value does not exist in the BST
  */
-BST_ERROR bst_mt_lmtx_search(bst_mt_lmtx_t *bst, int64_t value);
+BST_ERROR bst_mt_lrwl_search(bst_mt_lrwl_t *bst, int64_t value);
 
 /**
  * Finds and places in value the min value in the BST - Thread safe,
@@ -157,7 +159,7 @@ BST_ERROR bst_mt_lmtx_search(bst_mt_lmtx_t *bst, int64_t value);
  *          SUCCESS                        - min is stored in value, if value is
  *                                           not NULL
  */
-BST_ERROR bst_mt_lmtx_min(bst_mt_lmtx_t *bst, int64_t *value);
+BST_ERROR bst_mt_lrwl_min(bst_mt_lrwl_t *bst, int64_t *value);
 
 /**
  * Finds and places in value the min value in the BST - Thread safe,
@@ -170,14 +172,12 @@ BST_ERROR bst_mt_lmtx_min(bst_mt_lmtx_t *bst, int64_t *value);
  *          PT_RWLOCK_WRITE_LOCK_FAILURE   - when failed to lock the global
  *                                           RwLock, value is not written.
  *          PT_RWLOCK_WRITE_UNLOCK_FAILURE - when failed to unlock the global
- *                                           RwLock, can be paired with BST_EMPTY
- *                                           or SUCCESS. If paired with success,
- *                                           max is stored in value, if value is
- *                                           not NULL
- *          SUCCESS                        - max is stored in value, if value is
- *                                           not NULL
+ *                                           RwLock, can be paired with
+ * BST_EMPTY or SUCCESS. If paired with success, max is stored in value, if
+ * value is not NULL SUCCESS                        - max is stored in value, if
+ * value is not NULL
  */
-BST_ERROR bst_mt_lmtx_max(bst_mt_lmtx_t *bst, int64_t *value);
+BST_ERROR bst_mt_lrwl_max(bst_mt_lrwl_t *bst, int64_t *value);
 
 /**
  * Finds and places in value the total number of tree nodes in the BST - Thread
@@ -202,7 +202,7 @@ BST_ERROR bst_mt_lmtx_max(bst_mt_lmtx_t *bst, int64_t *value);
  *          SUCCESS                        - node count is stored in value, if
  *                                           value is not NULL.
  */
-BST_ERROR bst_mt_lmtx_node_count(bst_mt_lmtx_t *bst, size_t *value);
+BST_ERROR bst_mt_lrwl_node_count(bst_mt_lrwl_t *bst, size_t *value);
 
 /**
  * Calculates and places in value the BST height - Thread safe,
@@ -229,7 +229,7 @@ BST_ERROR bst_mt_lmtx_node_count(bst_mt_lmtx_t *bst, size_t *value);
  *          SUCCESS                        - height is stored in value, if value
  *                                           not NULL.
  */
-BST_ERROR bst_mt_lmtx_height(bst_mt_lmtx_t *bst, size_t *value);
+BST_ERROR bst_mt_lrwl_height(bst_mt_lrwl_t *bst, size_t *value);
 
 /**
  * Calculates and places in value the BST width - Thread safe,
@@ -256,7 +256,7 @@ BST_ERROR bst_mt_lmtx_height(bst_mt_lmtx_t *bst, size_t *value);
  *          SUCCESS                        - width is stored in value, if value
  *                                           not NULL.
  */
-BST_ERROR bst_mt_lmtx_width(bst_mt_lmtx_t *bst, size_t *value);
+BST_ERROR bst_mt_lrwl_width(bst_mt_lrwl_t *bst, size_t *value);
 
 /**
  * Traverse and print the BST nodes preorder - Thread safe,
@@ -282,7 +282,7 @@ BST_ERROR bst_mt_lmtx_width(bst_mt_lmtx_t *bst, size_t *value);
  *          SUCCESS                        - elements written to stdout in
  *                                           preorder.
  */
-BST_ERROR bst_mt_lmtx_traverse_preorder(bst_mt_lmtx_t *bst);
+BST_ERROR bst_mt_lrwl_traverse_preorder(bst_mt_lrwl_t *bst);
 
 /**
  * Traverse and print the BST nodes inorder - Thread safe,
@@ -308,7 +308,7 @@ BST_ERROR bst_mt_lmtx_traverse_preorder(bst_mt_lmtx_t *bst);
  *          SUCCESS                        - elements written to stdout in
  *                                           inorder.
  */
-BST_ERROR bst_mt_lmtx_traverse_inorder(bst_mt_lmtx_t *bst);
+BST_ERROR bst_mt_lrwl_traverse_inorder(bst_mt_lrwl_t *bst);
 
 /**
  * Traverse and print the BST nodes postorder - Thread safe,
@@ -334,7 +334,7 @@ BST_ERROR bst_mt_lmtx_traverse_inorder(bst_mt_lmtx_t *bst);
  *          SUCCESS                        - elements written to stdout in
  *                                           postorder.
  */
-BST_ERROR bst_mt_lmtx_traverse_postorder(bst_mt_lmtx_t *bst);
+BST_ERROR bst_mt_lrwl_traverse_postorder(bst_mt_lrwl_t *bst);
 
 /**
  * Attempt to find and delete value from bst - Thread safe,
@@ -354,7 +354,7 @@ BST_ERROR bst_mt_lmtx_traverse_postorder(bst_mt_lmtx_t *bst);
  *          VALUE_NONEXISTENT            - value not found.
  *          SUCCESS                      - value removed.
  */
-BST_ERROR bst_mt_lmtx_delete(bst_mt_lmtx_t *bst, int64_t value);
+BST_ERROR bst_mt_lrwl_delete(bst_mt_lrwl_t *bst, int64_t value);
 
 /**
  * Height rebalance BST ST.
@@ -378,7 +378,7 @@ BST_ERROR bst_mt_lmtx_delete(bst_mt_lmtx_t *bst, int64_t value);
  *                                     BST and all nodes are freed.
  *          SUCCESS                  - BST rebalanced.
  */
-BST_ERROR bst_mt_lmtx_rebalance(bst_mt_lmtx_t *bst);
+BST_ERROR bst_mt_lrwl_rebalance(bst_mt_lrwl_t *bst);
 
 /**
  * Frees a BST.
@@ -393,14 +393,14 @@ BST_ERROR bst_mt_lmtx_rebalance(bst_mt_lmtx_t *bst);
  *                                           mutex, all nodes are freed but the
  *                                           BST is not.
  *          PT_MUTEX_DESTROY_FAILURE       - when failed to destroy the global
- *                                           mutex, all nodes are freed but the BST is not.
- *          PT_RWLOCK_WRITE_UNLOCK_FAILURE - when failed to unlock the global
+ *                                           mutex, all nodes are freed but the
+ * BST is not. PT_RWLOCK_WRITE_UNLOCK_FAILURE - when failed to unlock the global
  *                                           RwLock, all nodes are freed but the
  *                                           BST is not.
-*           PT_RWLOCK_DESTROY_FAILURE      - when failed to destroy the global
+ *           PT_RWLOCK_DESTROY_FAILURE      - when failed to destroy the global
  *                                           RwLock, all nodes are freed but the
  *                                           BST is not.
  *          SUCCESS                        - bst and all nodes freed.
  */
-BST_ERROR bst_mt_lmtx_free(bst_mt_lmtx_t *bst);
-#endif // BST_MT_LMTX_H_
+BST_ERROR bst_mt_lrwl_free(bst_mt_lrwl_t *bst);
+#endif // BST_MT_LRWL_H_

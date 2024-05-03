@@ -3,7 +3,7 @@ Universidade Aberta
 File: bst_mt_grwl_t.c
 Author: Hugo Gonçalves, 2100562
 
-Multi-thread BST using a RwLock mutex
+MT Safe BST using a global RwLock with write preference.
 
 MIT License
 
@@ -35,9 +35,7 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 #include "bst_mt_grwl.h"
 
-bst_mt_grwl_node_t *bst_mt_grwl_node_new(int64_t value,
-                                         bst_mt_grwl_node_t *parent,
-                                         BST_ERROR *err) {
+bst_mt_grwl_node_t *bst_mt_grwl_node_new(int64_t value, BST_ERROR *err) {
     bst_mt_grwl_node_t *node = (bst_mt_grwl_node_t *)malloc(sizeof *node);
 
     if (node == NULL) {
@@ -122,7 +120,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
 
     if (bst->root == NULL) {
         BST_ERROR err;
-        bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, NULL, &err);
+        bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
 
         if ((err & SUCCESS) == SUCCESS) {
             bst->root = node;
@@ -148,8 +146,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
         if (value - root->value < 0) {
             if (root->left == NULL) {
                 BST_ERROR err;
-                bst_mt_grwl_node_t *node =
-                    bst_mt_grwl_node_new(value, root, &err);
+                bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
 
                 if (IS_SUCCESS(err)) {
                     root->left = node;
@@ -173,8 +170,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value) {
         } else if (value - root->value > 0) {
             if (root->right == NULL) {
                 BST_ERROR err;
-                bst_mt_grwl_node_t *node =
-                    bst_mt_grwl_node_new(value, root, &err);
+                bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
 
                 if (IS_SUCCESS(err)) {
                     root->right = node;
@@ -748,12 +744,13 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t *bst, int64_t value) {
     return SUCCESS;
 }
 
-void save_inorder(bst_mt_grwl_node_t *node, int64_t *inorder, size_t *index) {
+void grwl_save_inorder(bst_mt_grwl_node_t *node, int64_t *inorder,
+                       int64_t *index) {
     if (node == NULL)
         return;
-    save_inorder(node->left, inorder, index);
+    grwl_save_inorder(node->left, inorder, index);
     inorder[(*index)++] = node->value;
-    save_inorder(node->right, inorder, index);
+    grwl_save_inorder(node->right, inorder, index);
 }
 
 void bst_mt_grwl_node_free(bst_mt_grwl_node_t *root) {
@@ -772,8 +769,8 @@ void bst_mt_grwl_node_free(bst_mt_grwl_node_t *root) {
     free(root);
 }
 
-bst_mt_grwl_node_t *array_to_bst(int64_t *arr, size_t start, size_t end,
-                                 bst_mt_grwl_node_t *parent, BST_ERROR *err) {
+bst_mt_grwl_node_t *grwl_array_to_bst(int64_t *arr, int64_t start, int64_t end,
+                                      BST_ERROR *err) {
     if (start > end) {
         if (err != NULL) {
             *err = SUCCESS;
@@ -781,17 +778,17 @@ bst_mt_grwl_node_t *array_to_bst(int64_t *arr, size_t start, size_t end,
         return NULL;
     }
 
-    size_t mid = (start + end) / 2;
+    int64_t mid = (start + end) / 2;
 
     BST_ERROR e;
 
-    bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(arr[mid], parent, &e);
+    bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(arr[mid], &e);
 
     if (IS_SUCCESS(e)) {
-        node->left = array_to_bst(arr, start, mid - 1, node, &e);
+        node->left = grwl_array_to_bst(arr, start, mid - 1, &e);
 
         if (IS_SUCCESS(e)) {
-            node->right = array_to_bst(arr, mid + 1, end, node, &e);
+            node->right = grwl_array_to_bst(arr, mid + 1, end, &e);
 
             if (IS_SUCCESS(e)) {
                 if (err != NULL) {
@@ -851,13 +848,13 @@ BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst) {
         return MALLOC_FAILURE;
     }
 
-    size_t index = 0;
-    save_inorder(bst->root, inorder, &index);
+    int64_t index = 0;
+    grwl_save_inorder(bst->root, inorder, &index);
 
     bst_mt_grwl_node_free(bst->root);
 
     BST_ERROR err;
-    bst->root = array_to_bst(inorder, 0, index - 1, NULL, &err);
+    bst->root = grwl_array_to_bst(inorder, 0, index - 1, &err);
 
     if (IS_SUCCESS(err)) {
         bst->count = index;

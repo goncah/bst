@@ -3,7 +3,7 @@ Universidade Aberta
 File: bst_mt_grwl_t.h
 Author: Hugo Gonçalves, 2100562
 
-Multi-thread BST using a global RwLock
+MT Safe BST using a global RwLock with write preference.
 
 MIT License
 
@@ -36,7 +36,7 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 
 /**
- * Holds a tree node with pointer to both children as well as the parent node
+ * Holds a tree node with pointer to both children nodes
  */
 typedef struct bst_mt_grwl_node {
     int64_t value;

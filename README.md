@@ -25,7 +25,7 @@ $ gcc -Wall -Wextra -shared -fPIC -o out/libbst_st.so bst_st_t.c -lpthread
 
 $ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_grwl.so bst_mt_grwl_t.c -lpthread
 
-$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_lmtx.so bst_mt_lmtx_t.c -lpthread
+$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_lmtx.so bst_mt_lrwl_t.c -lpthread
 
 $ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_cas.so bst_mt_cas.c -lpthread
 
@@ -61,8 +61,24 @@ Options:
 
 -g Set the BST type to MT Global RwLock, can be set with -c and -l to test multiple BST types
 
--l Set the BST type to MT Local Mutex, can be set with -c and -g to test multiple BST types
+-l Set the BST type to MT Local RwLock, can be set with -c and -g to test multiple BST types
 
+### Output
+#### Output is csv format with the following columns:
+<bst_type>, <strategy>,<#threads>,<#tree_node_count>,<tree_min>,<tree_max>,<tree_height>,<tree_width>,<time_taken>,<#inserts>,<#searches>,<#mins>,<#maxs>,<#heights>,<#widths>,<#deletes>,<#rebalances>
+
+### Examples
+#### Run 100000 operations for all BST types, only insert strategy and do not repeat
+$ bst -o 100000 -g -l -c -s insert -r 1 -t 20
+
+#### Run 100000 operations for all BST types, insert and write strategy and do not repeat
+$ bst -o 100000 -g -l -c -s insert -s write -r 1 -t 20
+
+#### Run 10000 operations only for BST ST, only read strategy and do not repeat
+$ bst -o 10000 -c -s read -r 1
+
+#### Run 10000 operations only for BST ST, only read strategy and do not repeat
+$ bst -o 10000 -c -s read -r 1
 
 ## Compiled and tested with
 WSL Ubuntu 22.04.4 LTS

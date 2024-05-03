@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #include "bst_mt_grwl.h"
-#include "bst_mt_lmtx.h"
+#include "bst_mt_lrwl.h"
 #include "bst_st.h"
 
 char *usage() {
@@ -31,7 +31,7 @@ Options:\n\
 \t\tread_write - Random inserts, deletes, search, min, max, height and width with random generated numbers.\n\
 \t-c Set the BST type to ST, can be set with -g and -l to test multiple BST types\n\
 \t-g Set the BST type to MT Global RwLock, can be set with -c and -l to test multiple BST types\n\
-\t-l Set the BST type to MT Local Mutex, can be set with -c and -g to test multiple BST types\n\
+\t-l Set the BST type to MT Local RwLock, can be set with -c and -g to test multiple BST types\n\
     \n";
 
     return msg;
@@ -118,7 +118,7 @@ str2int_errno str2int(int64_t *out, char *s) {
 enum bst_type {
     ST = (1u << 1),
     GRWL = (1u << 2),
-    LMTX = (1u << 3),
+    LRWL = (1u << 3),
 };
 
 enum test_strat {
@@ -202,27 +202,26 @@ void set_mt_gmtx_functions(test_bst_s *t) {
     t->rebalance = (BST_ERROR(*)(void *))bst_mt_grwl_rebalance;
 }
 
-void set_mt_lmtx_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(void *, int64_t))bst_mt_lmtx_add;
-    t->search = (BST_ERROR(*)(void *, int64_t))bst_mt_lmtx_search;
-    t->min = (BST_ERROR(*)(void *, int64_t *))bst_mt_lmtx_min;
-    t->max = (BST_ERROR(*)(void *, int64_t *))bst_mt_lmtx_max;
-    t->height = (BST_ERROR(*)(void *, int64_t *))bst_mt_lmtx_height;
-    t->width = (BST_ERROR(*)(void *, int64_t *))bst_mt_lmtx_width;
-    t->delete = (BST_ERROR(*)(void *, int64_t))bst_mt_lmtx_delete;
-    t->rebalance = (BST_ERROR(*)(void *))bst_mt_lmtx_rebalance;
+void set_mt_lrwl_functions(test_bst_s *t) {
+    t->add = (BST_ERROR(*)(void *, int64_t))bst_mt_lrwl_add;
+    t->search = (BST_ERROR(*)(void *, int64_t))bst_mt_lrwl_search;
+    t->min = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_min;
+    t->max = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_max;
+    t->height = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_height;
+    t->width = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_width;
+    t->delete = (BST_ERROR(*)(void *, int64_t))bst_mt_lrwl_delete;
+    t->rebalance = (BST_ERROR(*)(void *))bst_mt_lrwl_rebalance;
 }
 
 void *bst_st_test_insert_thread(void *vargp) {
     test_bst_s *data = (test_bst_s *)vargp;
-    bst_st_t *bst = (bst_st_t *)data->bst;
     size_t operations = data->operations;
     size_t start = data->start;
     int64_t *values = data->values;
     test_bst_metrics *metrics = data->metrics;
 
     for (int64_t i = 0; i < operations; i++) {
-        if ((data->add(bst, values[start + i]) & SUCCESS) != SUCCESS) {
+        if ((data->add(data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
             PANIC("Failed to add element");
         }
         metrics->inserts++;
@@ -233,7 +232,6 @@ void *bst_st_test_insert_thread(void *vargp) {
 
 void *bst_st_test_write_thread(void *vargp) {
     test_bst_s *data = (test_bst_s *)vargp;
-    bst_st_t *bst = (bst_st_t *)data->bst;
     size_t operations = data->operations;
     size_t start = data->start;
     int64_t *values = data->values;
@@ -245,13 +243,13 @@ void *bst_st_test_write_thread(void *vargp) {
         int op = i < 3 ? 0 : rand_r(&seed) % 2;
 
         if (op == 0) {
-            if ((data->add(bst, values[start + i]) & SUCCESS) != SUCCESS) {
+            if ((data->add(data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
         } else {
             BST_ERROR be =
-                data->delete (bst, values[start + rand_r(&seed) % i]);
+                data->delete (data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
                 (be & BST_EMPTY) != BST_EMPTY) {
@@ -266,7 +264,6 @@ void *bst_st_test_write_thread(void *vargp) {
 
 void *bst_st_test_writeb_thread(void *vargp) {
     test_bst_s *data = (test_bst_s *)vargp;
-    bst_st_t *bst = (bst_st_t *)data->bst;
     size_t operations = data->operations;
     size_t start = data->start;
     int64_t *values = data->values;
@@ -278,13 +275,13 @@ void *bst_st_test_writeb_thread(void *vargp) {
         int op = i < 3 ? 0 : rand_r(&seed) % 3;
 
         if (op == 0) {
-            if ((data->add(bst, values[start + i]) & SUCCESS) != SUCCESS) {
+            if ((data->add(data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
         } else if (op == 1) {
             BST_ERROR be =
-                data->delete (bst, values[start + rand_r(&seed) % i]);
+                data->delete (data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
                 (be & BST_EMPTY) != BST_EMPTY) {
@@ -292,7 +289,7 @@ void *bst_st_test_writeb_thread(void *vargp) {
             }
             metrics->deletes++;
         } else {
-            BST_ERROR be = data->rebalance(bst);
+            BST_ERROR be = data->rebalance(data->bst);
 
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to rebalance");
@@ -445,8 +442,8 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
     case GRWL:
         bst_type = "GRWL";
         break;
-    case LMTX:
-        bst_type = "LMTX";
+    case LRWL:
+        bst_type = "LRWL";
         break;
     }
 
@@ -491,8 +488,8 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
         case GRWL:
             set_mt_gmtx_functions(&t);
             break;
-        case LMTX:
-            set_mt_lmtx_functions(&t);
+        case LRWL:
+            set_mt_lrwl_functions(&t);
             break;
         }
 
@@ -525,11 +522,11 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
                 }
             }
             break;
-        case LMTX:
-            bst = bst_mt_lmtx_new(NULL);
+        case LRWL:
+            bst = bst_mt_lrwl_new(NULL);
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_mt_lmtx_add(bst, values[i]);
+                    bst_mt_lrwl_add(bst, values[i]);
                 }
             }
             break;
@@ -577,13 +574,13 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
             bst_mt_grwl_width(bst, &width);
             bst_mt_grwl_free(bst);
             break;
-        case LMTX:
-            bst_mt_lmtx_node_count(bst, &nc);
-            bst_mt_lmtx_min(bst, &min);
-            bst_mt_lmtx_max(bst, &max);
-            bst_mt_lmtx_height(bst, &height);
-            bst_mt_lmtx_width(bst, &width);
-            bst_mt_lmtx_free(bst);
+        case LRWL:
+            bst_mt_lrwl_node_count(bst, &nc);
+            bst_mt_lrwl_min(bst, &min);
+            bst_mt_lrwl_max(bst, &max);
+            bst_mt_lrwl_height(bst, &height);
+            bst_mt_lrwl_width(bst, &width);
+            bst_mt_lrwl_free(bst);
             break;
         }
 
@@ -694,7 +691,7 @@ int main(int argc, char **argv) {
             type = type | GRWL;
             break;
         case 'l':
-            type = type | LMTX;
+            type = type | LRWL;
             break;
         case 'c':
             type = type | ST;
@@ -780,24 +777,24 @@ int main(int argc, char **argv) {
         bst_test(operations, 1, GRWL, READ_WRITE, repeat, values);
     }
 
-    if ((type & LMTX) == LMTX && (strat & INSERT) == INSERT) {
-        bst_test(operations, threads, LMTX, INSERT, repeat, values);
+    if ((type & LRWL) == LRWL && (strat & INSERT) == INSERT) {
+        bst_test(operations, threads, LRWL, INSERT, repeat, values);
     }
 
-    if ((type & LMTX) == LMTX && (strat & WRITE) == WRITE) {
-        bst_test(operations, threads, LMTX, WRITE, repeat, values);
+    if ((type & LRWL) == LRWL && (strat & WRITE) == WRITE) {
+        bst_test(operations, threads, LRWL, WRITE, repeat, values);
     }
 
-    if ((type & LMTX) == LMTX && (strat & WRITEB) == WRITEB) {
-        bst_test(operations, threads, LMTX, WRITEB, repeat, values);
+    if ((type & LRWL) == LRWL && (strat & WRITEB) == WRITEB) {
+        bst_test(operations, threads, LRWL, WRITEB, repeat, values);
     }
 
-    if ((type & LMTX) == LMTX && (strat & READ) == READ) {
-        bst_test(operations, threads, LMTX, READ, repeat, values);
+    if ((type & LRWL) == LRWL && (strat & READ) == READ) {
+        bst_test(operations, threads, LRWL, READ, repeat, values);
     }
 
-    if ((type & LMTX) == LMTX && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, 1, LMTX, READ_WRITE, repeat, values);
+    if ((type & LRWL) == LRWL && (strat & READ_WRITE) == READ_WRITE) {
+        bst_test(operations, 1, LRWL, READ_WRITE, repeat, values);
     }
 
     return 0;

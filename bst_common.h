@@ -44,7 +44,7 @@ IN THE SOFTWARE.
 
 /**
  * Function return errors. Bitmask is used to report multiple errors.
- * For example, failing to both unlock the RwLock in LMTX BST and unlock the
+ * For example, failing to both unlock the RwLock in LRWL BST and unlock the
  * Mutex in a node will return:
  * PT_MUTEX_UNLOCK_FAILURE | PT_RWLOCK_READ_UNLOCK_FAILURE
  */
