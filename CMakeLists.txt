@@ -12,11 +12,11 @@ message("#### CMAKE_C_FLAGS_RELEASE is ${CMAKE_C_FLAGS_RELEASE}")
 add_library(bst_st SHARED bst_st.c)
 target_compile_options(bst_st PRIVATE)
 
-add_library(bst_mt_gmtx SHARED bst_mt_gmtx.c)
-target_link_libraries(bst_mt_gmtx pthread)
+add_library(bst_mt_grwl SHARED bst_mt_grwl.c)
+target_link_libraries(bst_mt_grwl pthread)
 
 add_library(bst_mt_lmtx SHARED bst_mt_lmtx.c)
 target_link_libraries(bst_mt_lmtx pthread)
 
 add_executable(bst main.c)
-target_link_libraries(bst pthread bst_st bst_mt_gmtx bst_mt_lmtx)
+target_link_libraries(bst pthread bst_st bst_mt_grwl bst_mt_lmtx)

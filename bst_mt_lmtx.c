@@ -27,7 +27,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
-#define _XOPEN_SOURCE 700 // for PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP
 
 #include <pthread.h>
 #include <stdint.h>
@@ -40,6 +39,7 @@ IN THE SOFTWARE.
 bst_mt_lmtx_node_t *bst_mt_lmtx_node_new(int64_t value,
                                          bst_mt_lmtx_node_t *parent,
                                          BST_ERROR *err) {
+    return NULL;/*
     bst_mt_lmtx_node_t *node = (bst_mt_lmtx_node_t *)malloc(sizeof *node);
 
     if (node == NULL) {
@@ -53,7 +53,7 @@ bst_mt_lmtx_node_t *bst_mt_lmtx_node_new(int64_t value,
     if (pthread_mutex_init(&node->mtx, NULL)) {
         free(node);
         if (err != NULL) {
-            *err = PT_MUTEX_INIT_FAILURE;
+            *err = PT_RWLOCK_INIT_FAILURE;
         }
         return NULL;
     }
@@ -67,10 +67,11 @@ bst_mt_lmtx_node_t *bst_mt_lmtx_node_new(int64_t value,
         *err = SUCCESS;
     }
 
-    return node;
+    return node;*/
 }
 
 bst_mt_lmtx_t *bst_mt_lmtx_new(BST_ERROR *err) {
+    return NULL;/*
     bst_mt_lmtx_t *bst = (bst_mt_lmtx_t *)malloc(sizeof *bst);
 
     if (bst == NULL) {
@@ -84,7 +85,7 @@ bst_mt_lmtx_t *bst_mt_lmtx_new(BST_ERROR *err) {
     if (pthread_mutex_init(&bst->mtx, NULL)) {
         free(bst);
         if (err != NULL) {
-            *err = PT_MUTEX_INIT_FAILURE;
+            *err = PT_RWLOCK_INIT_FAILURE;
         }
         return NULL;
     }
@@ -102,7 +103,7 @@ bst_mt_lmtx_t *bst_mt_lmtx_new(BST_ERROR *err) {
         if (pthread_mutex_destroy(&bst->mtx)) {
             free(bst);
             if (err != NULL) {
-                *err = PT_MUTEX_DESTROY_FAILURE | PT_RWLOCK_ATTR_INIT_FAILURE;
+                *err = PT_RWLOCK_DESTROY_FAILURE | PT_RWLOCK_ATTR_INIT_FAILURE;
             }
             return NULL;
         }
@@ -119,7 +120,7 @@ bst_mt_lmtx_t *bst_mt_lmtx_new(BST_ERROR *err) {
             free(bst);
 
             if (err != NULL) {
-                *err = PT_MUTEX_DESTROY_FAILURE | PT_RWLOCK_INIT_FAILURE;
+                *err = PT_RWLOCK_DESTROY_FAILURE | PT_RWLOCK_INIT_FAILURE;
             }
             return NULL;
         }
@@ -134,10 +135,11 @@ bst_mt_lmtx_t *bst_mt_lmtx_new(BST_ERROR *err) {
 
     bst->root = NULL;
 
-    return bst;
+    return bst;*/
 }
 
 BST_ERROR bst_mt_lmtx_read_unlock(bst_mt_lmtx_t *bst) {
+    return 0;/*
     if (pthread_mutex_unlock(&bst->mtx)) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
             return PT_RWLOCK_READ_UNLOCK_FAILURE | PT_MUTEX_UNLOCK_FAILURE;
@@ -149,11 +151,12 @@ BST_ERROR bst_mt_lmtx_read_unlock(bst_mt_lmtx_t *bst) {
         return PT_RWLOCK_READ_UNLOCK_FAILURE;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_read_unlock_node(bst_mt_lmtx_t *bst,
                                        bst_mt_lmtx_node_t *root) {
+    return 0;/*
     if (pthread_mutex_unlock(&root->mtx)) {
         if (pthread_rwlock_unlock(&bst->rwl)) {
             return PT_MUTEX_UNLOCK_FAILURE | PT_RWLOCK_READ_UNLOCK_FAILURE;
@@ -165,10 +168,11 @@ BST_ERROR bst_mt_lmtx_read_unlock_node(bst_mt_lmtx_t *bst,
         return PT_RWLOCK_READ_UNLOCK_FAILURE;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_add(bst_mt_lmtx_t *bst, int64_t value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -314,10 +318,11 @@ BST_ERROR bst_mt_lmtx_add(bst_mt_lmtx_t *bst, int64_t value) {
     }
 
     // Should never get here
-    return UNKNOWN;
+    return UNKNOWN;*/
 }
 
 BST_ERROR bst_mt_lmtx_search(bst_mt_lmtx_t *bst, int64_t value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -353,10 +358,11 @@ BST_ERROR bst_mt_lmtx_search(bst_mt_lmtx_t *bst, int64_t value) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | VALUE_NONEXISTENT;
     }
 
-    return VALUE_NONEXISTENT;
+    return VALUE_NONEXISTENT;*/
 }
 
 BST_ERROR bst_mt_lmtx_min(bst_mt_lmtx_t *bst, int64_t *value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -386,10 +392,11 @@ BST_ERROR bst_mt_lmtx_min(bst_mt_lmtx_t *bst, int64_t *value) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_max(bst_mt_lmtx_t *bst, int64_t *value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -419,10 +426,11 @@ BST_ERROR bst_mt_lmtx_max(bst_mt_lmtx_t *bst, int64_t *value) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_node_count(bst_mt_lmtx_t *bst, size_t *value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -496,10 +504,11 @@ BST_ERROR bst_mt_lmtx_node_count(bst_mt_lmtx_t *bst, size_t *value) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_node_count_no_lock(bst_mt_lmtx_t *bst, size_t *value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -556,10 +565,11 @@ BST_ERROR bst_mt_lmtx_node_count_no_lock(bst_mt_lmtx_t *bst, size_t *value) {
 
     free(stack);
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_height(bst_mt_lmtx_t *bst, size_t *value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -623,11 +633,11 @@ BST_ERROR bst_mt_lmtx_height(bst_mt_lmtx_t *bst, size_t *value) {
         }
 
         // Push children to the stack with incremented depth
-        if (current->right != NULL) {
+        if (current != NULL && current->right != NULL) {
             stack[stack_size++] =
                 (struct Stack){current->right, current_depth + 1};
         }
-        if (current->left != NULL) {
+        if (current != NULL && current->left != NULL) {
             stack[stack_size++] =
                 (struct Stack){current->left, current_depth + 1};
         }
@@ -643,10 +653,11 @@ BST_ERROR bst_mt_lmtx_height(bst_mt_lmtx_t *bst, size_t *value) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_width(bst_mt_lmtx_t *bst, size_t *value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -720,10 +731,11 @@ BST_ERROR bst_mt_lmtx_width(bst_mt_lmtx_t *bst, size_t *value) {
         return PT_MUTEX_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_traverse_preorder(bst_mt_lmtx_t *bst) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -785,10 +797,11 @@ BST_ERROR bst_mt_lmtx_traverse_preorder(bst_mt_lmtx_t *bst) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_traverse_inorder(bst_mt_lmtx_t *bst) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -852,10 +865,11 @@ BST_ERROR bst_mt_lmtx_traverse_inorder(bst_mt_lmtx_t *bst) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_traverse_postorder(bst_mt_lmtx_t *bst) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -934,10 +948,11 @@ BST_ERROR bst_mt_lmtx_traverse_postorder(bst_mt_lmtx_t *bst) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 BST_ERROR bst_mt_lmtx_delete(bst_mt_lmtx_t *bst, int64_t value) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -1010,7 +1025,7 @@ BST_ERROR bst_mt_lmtx_delete(bst_mt_lmtx_t *bst, int64_t value) {
         return PT_RWLOCK_WRITE_UNLOCK_FAILURE | SUCCESS;
     }
 
-    return SUCCESS;
+    return SUCCESS;*/
 }
 
 void save_inorder(bst_mt_lmtx_node_t *node, int64_t *inorder, size_t *index) {
@@ -1092,6 +1107,7 @@ bst_mt_lmtx_node_t *array_to_bst(int64_t *arr, size_t start, size_t end,
 }
 
 BST_ERROR bst_mt_lmtx_rebalance(bst_mt_lmtx_t *bst) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -1172,10 +1188,11 @@ BST_ERROR bst_mt_lmtx_rebalance(bst_mt_lmtx_t *bst) {
     }
 
     free(bst);
-    return err;
+    return err;*/
 }
 
 BST_ERROR bst_mt_lmtx_free(bst_mt_lmtx_t *bst) {
+    return 0;/*
     if (bst == NULL) {
         return BST_NULL;
     }
@@ -1211,5 +1228,5 @@ BST_ERROR bst_mt_lmtx_free(bst_mt_lmtx_t *bst) {
 
     bst = NULL;
 
-    return SUCCESS;
+    return SUCCESS;*/
 }

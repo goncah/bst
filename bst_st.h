@@ -38,7 +38,6 @@ IN THE SOFTWARE.
  */
 typedef struct bst_st_node {
     int64_t value;
-    struct bst_st_node *parent;
     struct bst_st_node *left;
     struct bst_st_node *right;
 } bst_st_node_t;

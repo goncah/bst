@@ -34,7 +34,8 @@ IN THE SOFTWARE.
 #include "bst_common.h"
 #include "bst_st.h"
 
-bst_st_node_t *bst_st_node_new(int64_t value, bst_st_node_t *parent, BST_ERROR *err) {
+bst_st_node_t *bst_st_node_new(int64_t value, bst_st_node_t *parent,
+                               BST_ERROR *err) {
     bst_st_node_t *node = (bst_st_node_t *)malloc(sizeof *node);
 
     if (node == NULL) {
@@ -46,7 +47,6 @@ bst_st_node_t *bst_st_node_new(int64_t value, bst_st_node_t *parent, BST_ERROR *
     }
 
     node->value = value;
-    node->parent = parent;
     node->left = NULL;
     node->right = NULL;
 
@@ -391,8 +391,10 @@ BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value) {
     // Find the node
     while (current != NULL && current->value != value) {
         if (value < current->value) {
+            parent = current;
             current = current->left;
         } else {
+            parent = current;
             current = current->right;
         }
     }
@@ -400,8 +402,6 @@ BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value) {
     if (current == NULL) {
         return VALUE_NONEXISTENT;
     }
-
-    parent = current->parent;
 
     // Node with two children
     if (current->left != NULL && current->right != NULL) {
@@ -438,7 +438,7 @@ BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value) {
     return SUCCESS;
 }
 
-void save_inorder(bst_st_node_t *node, int64_t *inorder, size_t *index) {
+void save_inorder(bst_st_node_t *node, int64_t *inorder, int64_t *index) {
     if (node == NULL) {
         return;
     }
@@ -464,7 +464,7 @@ void bst_node_free(bst_st_node_t *root) {
     free(root);
 }
 
-bst_st_node_t *array_to_bst(int64_t arr[], size_t start, size_t end,
+bst_st_node_t *array_to_bst(int64_t arr[], int64_t start, int64_t end,
                             bst_st_node_t *parent, BST_ERROR *err) {
     if (start > end) {
         if (err != NULL) {
@@ -473,7 +473,7 @@ bst_st_node_t *array_to_bst(int64_t arr[], size_t start, size_t end,
         return NULL;
     }
 
-    size_t mid = (start + end) / 2;
+    int64_t mid = (start + end) / 2;
 
     BST_ERROR e;
 
@@ -532,7 +532,7 @@ BST_ERROR bst_st_rebalance(bst_st_t *bst) {
         return MALLOC_FAILURE;
     }
 
-    size_t index = 0;
+    int64_t index = 0;
     save_inorder(bst->root, inorder, &index);
 
     bst_node_free(bst->root);

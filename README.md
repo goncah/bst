@@ -23,7 +23,7 @@ $ cmake --build out --target all
 
 $ gcc -Wall -Wextra -shared -fPIC -o out/libbst_st.so bst_st_t.c -lpthread
 
-$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_gmtx.so bst_mt_gmtx_t.c -lpthread
+$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_grwl.so bst_mt_grwl_t.c -lpthread
 
 $ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_lmtx.so bst_mt_lmtx_t.c -lpthread
 
@@ -31,7 +31,7 @@ $ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_cas.so bst_mt_cas.c -lpthread
 
 ### Compile the test executable
 
-gcc -Wall -Wextra -Lout/ -o out/test_bst main.c -pthread -lbst_st -lbst_mt_gmtx -lbst_mt_lmtx -lbst_mt_cas
+gcc -Wall -Wextra -Lout/ -o out/test_bst main.c -pthread -lbst_st -lbst_mt_grwl -lbst_mt_lmtx -lbst_mt_cas
 
 ## Test executable usage
 
@@ -39,18 +39,39 @@ gcc -Wall -Wextra -Lout/ -o out/test_bst main.c -pthread -lbst_st -lbst_mt_gmtx 
 
 $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:out
 
-### BST Single Thread
+### Execute tests
+$ bst < options >
 
-$ test_bst st <#inserts>
+Options:
 
-### BST Multi Thread Global Mutex
+-o Set the number of operations
 
-$ test_bst gmtx <#threads> <#inserts>
+-t Set the number of threads, operations are evenly distributed. Ignored for BST ST type.
 
-### BST Multi Thread Local Mutex
+-r Set the number of test repetitions, applies to each strat and each BST type
 
-$ test_bst lmtx <#threads> <#inserts>
+-s < strategy > Set the test strategy. Multiple strategies can be set, example -s 1 -s 2 -s 3. Available strategies are:
+   insert     - Inserts only with random generated numbers.
+   write      - Random inserts, deletes with random generated numbers.
+   writeb     - Random inserts, deletes and rebalance with random generated numbers.
+   read       - Random search, min, max, height and width. -o sets the number of elements in the read.
+   read_write - Random inserts, deletes, search, min, max, height and width with random generated numbers.
 
-### BST Multi Thread CAS
+-c Set the BST type to ST, can be set with -g and -l to test multiple BST types
 
-$ test_bst cas <#threads> <#inserts>
+-g Set the BST type to MT Global RwLock, can be set with -c and -l to test multiple BST types
+
+-l Set the BST type to MT Local Mutex, can be set with -c and -g to test multiple BST types
+
+
+## Compiled and tested with
+WSL Ubuntu 22.04.4 LTS
+
+gcc: 11.4.0
+
+ld: 2.38
+
+glibc: (Ubuntu GLIBC 2.35-0ubuntu3.7) 2.35
+
+kernel: 5.15.146.1-microsoft-standard-WSL2
+

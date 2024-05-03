@@ -1,9 +1,9 @@
 /*
 Universidade Aberta
-File: bst_mt_gmtx_t.h
+File: bst_mt_grwl_t.h
 Author: Hugo Gonçalves, 2100562
 
-Multi-thread BST using a global mutex
+Multi-thread BST using a global RwLock
 
 MIT License
 
@@ -28,8 +28,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
-#ifndef BST_MT_GMTX_H_
-#define BST_MT_GMTX_H_
+#ifndef BST_MT_GRWL_H_
+#define BST_MT_GRWL_H_
 #include <pthread.h>
 #include <stdint.h>
 
@@ -38,21 +38,20 @@ IN THE SOFTWARE.
 /**
  * Holds a tree node with pointer to both children as well as the parent node
  */
-typedef struct bst_mt_gmtx_node {
+typedef struct bst_mt_grwl_node {
     int64_t value;
-    struct bst_mt_gmtx_node *parent;
-    struct bst_mt_gmtx_node *left;
-    struct bst_mt_gmtx_node *right;
-} bst_mt_gmtx_node_t;
+    struct bst_mt_grwl_node *left;
+    struct bst_mt_grwl_node *right;
+} bst_mt_grwl_node_t;
 
 /**
  * The BST
  */
-typedef struct bst_mt_gmtx {
+typedef struct bst_mt_grwl {
     size_t count;
-    bst_mt_gmtx_node_t *root;
-    pthread_mutex_t mtx;
-} bst_mt_gmtx_t;
+    bst_mt_grwl_node_t *root;
+    pthread_rwlock_t rwl;
+} bst_mt_grwl_t;
 
 // Prototypes
 /**
@@ -66,7 +65,7 @@ typedef struct bst_mt_gmtx {
  * @param err NULL (no effect) or allocated pointer to store any errors
  * @return bst or NULL if malloc() fails
  */
-bst_mt_gmtx_t *bst_mt_gmtx_new(BST_ERROR *err);
+bst_mt_grwl_t *bst_mt_grwl_new(BST_ERROR *err);
 
 /**
  * Adds a new value to the BST - Thread safe.
@@ -89,7 +88,7 @@ bst_mt_gmtx_t *bst_mt_gmtx_new(BST_ERROR *err);
  *          VALUE_EXISTS            - when the value already exists.
  *          UNKNOWN                 - should never get here.
  */
-BST_ERROR bst_mt_gmtx_add(bst_mt_gmtx_t *bst, int64_t value);
+BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t *bst, int64_t value);
 
 /**
  * Searches the BST for the given value- Thread safe,
@@ -106,7 +105,7 @@ BST_ERROR bst_mt_gmtx_add(bst_mt_gmtx_t *bst, int64_t value);
  *          VALUE_EXISTS            - value exists in the BST
  *          VALUE_NONEXISTENT       - value does not exist in the BST
  */
-BST_ERROR bst_mt_gmtx_search(bst_mt_gmtx_t *bst, int64_t value);
+BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t *bst, int64_t value);
 
 /**
  * Finds and places in value the min value in the BST - Thread safe,
@@ -124,7 +123,7 @@ BST_ERROR bst_mt_gmtx_search(bst_mt_gmtx_t *bst, int64_t value);
  *                                    value, if value not NULL
  *          SUCCESS                 - min is stored in value, if value not NULL
  */
-BST_ERROR bst_mt_gmtx_min(bst_mt_gmtx_t *bst, int64_t *value);
+BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t *bst, int64_t *value);
 
 /**
  * Finds and places in value the max value in the BST - Thread safe,
@@ -141,7 +140,7 @@ BST_ERROR bst_mt_gmtx_min(bst_mt_gmtx_t *bst, int64_t *value);
  *                                    value, if value not NULL
  *          SUCCESS                 - max is stored in value, if value not NULL
  */
-BST_ERROR bst_mt_gmtx_max(bst_mt_gmtx_t *bst, int64_t *value);
+BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t *bst, int64_t *value);
 
 /**
  * Finds and places in value the total number of tree nodes in the BST - Thread
@@ -159,7 +158,7 @@ BST_ERROR bst_mt_gmtx_max(bst_mt_gmtx_t *bst, int64_t *value);
  *                                    not NULL.
  *          SUCCESS                 - max is stored in value, if value not NULL.
  */
-BST_ERROR bst_mt_gmtx_node_count(bst_mt_gmtx_t *bst, size_t *value);
+BST_ERROR bst_mt_grwl_node_count(bst_mt_grwl_t *bst, size_t *value);
 
 /**
  * Calculates and places in value the BST height - Thread safe,
@@ -184,7 +183,7 @@ BST_ERROR bst_mt_gmtx_node_count(bst_mt_gmtx_t *bst, size_t *value);
  *          SUCCESS                 - height is stored in value, if value not
  *                                    NULL
  */
-BST_ERROR bst_mt_gmtx_height(bst_mt_gmtx_t *bst, size_t *value);
+BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t *bst, size_t *value);
 
 /**
  * Calculates and places in value the BST width - Thread safe,
@@ -209,7 +208,7 @@ BST_ERROR bst_mt_gmtx_height(bst_mt_gmtx_t *bst, size_t *value);
  *          SUCCESS                 - width is stored in value, if value not
  *                                    NULL.
  */
-BST_ERROR bst_mt_gmtx_width(bst_mt_gmtx_t *bst, size_t *value);
+BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t *bst, size_t *value);
 
 /**
  * Traverse and print the BST nodes preorder - Thread safe,
@@ -232,7 +231,7 @@ BST_ERROR bst_mt_gmtx_width(bst_mt_gmtx_t *bst, size_t *value);
  *                                    written to stdout in preorder.
  *          SUCCESS                 - elements written to stdout in preorder.
  */
-BST_ERROR bst_mt_gmtx_traverse_preorder(bst_mt_gmtx_t *bst);
+BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t *bst);
 
 /**
  * Traverse and print the BST nodes inorder - Thread safe,
@@ -255,7 +254,7 @@ BST_ERROR bst_mt_gmtx_traverse_preorder(bst_mt_gmtx_t *bst);
  *                                    written to stdout in preorder.
  *          SUCCESS                 - elements written to stdout in inorder.
  */
-BST_ERROR bst_mt_gmtx_traverse_inorder(bst_mt_gmtx_t *bst);
+BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t *bst);
 
 /**
  * Traverse and print the BST nodes postorder - Thread safe,
@@ -278,7 +277,7 @@ BST_ERROR bst_mt_gmtx_traverse_inorder(bst_mt_gmtx_t *bst);
  *                                    written to stdout in preorder.
  *          SUCCESS                 - elements written to stdout in postorder.
  */
-BST_ERROR bst_mt_gmtx_traverse_postorder(bst_mt_gmtx_t *bst);
+BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t *bst);
 
 /**
  * Attempt to find and delete value from bst - Thread safe,
@@ -297,7 +296,7 @@ BST_ERROR bst_mt_gmtx_traverse_postorder(bst_mt_gmtx_t *bst);
  *          VALUE_NONEXISTENT       - value not found.
  *          SUCCESS                 - value removed.
  */
-BST_ERROR bst_mt_gmtx_delete(bst_mt_gmtx_t *bst, int64_t value);
+BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t *bst, int64_t value);
 
 /**
  * Height rebalance BST ST.
@@ -321,7 +320,7 @@ BST_ERROR bst_mt_gmtx_delete(bst_mt_gmtx_t *bst, int64_t value);
  *                                     BST and all nodes are freed.
  *          SUCCESS                  - BST rebalanced.
  */
-BST_ERROR bst_mt_gmtx_rebalance(bst_mt_gmtx_t *bst);
+BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t *bst);
 
 /**
  * Frees a BST.
@@ -336,5 +335,5 @@ BST_ERROR bst_mt_gmtx_rebalance(bst_mt_gmtx_t *bst);
  *                                     all nodes are freed but the BST is not.
  *          SUCCESS                  - bst and all nodes freed.
  */
-BST_ERROR bst_mt_gmtx_free(bst_mt_gmtx_t *bst);
-#endif // BST_MT_GMTX_H_
+BST_ERROR bst_mt_grwl_free(bst_mt_grwl_t *bst);
+#endif // BST_MT_GRWL_H_

@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 
 #define PANIC(msg)                                                             \
     {                                                                          \
-        fprintf(stderr, "%s", (msg));                                          \
+        fprintf(stderr, "%s\n", (msg));                                        \
         exit(1);                                                               \
     }
 
@@ -58,18 +58,14 @@ typedef enum BST_ERROR {
     VALUE_NOT_ADDED                = (1u << 6),
     VALUE_ADDED                    = (1u << 7),
     MALLOC_FAILURE                 = (1u << 8),
-    PT_MUTEX_INIT_FAILURE          = (1u << 9),
-    PT_MUTEX_DESTROY_FAILURE       = (1u << 10),
-    PT_MUTEX_LOCK_FAILURE          = (1u << 11),
-    PT_MUTEX_UNLOCK_FAILURE        = (1u << 12),
-    PT_RWLOCK_INIT_FAILURE         = (1u << 13),
-    PT_RWLOCK_DESTROY_FAILURE      = (1u << 14),
-    PT_RWLOCK_ATTR_INIT_FAILURE    = (1u << 15),
-    PT_RWLOCK_READ_LOCK_FAILURE    = (1u << 16),
-    PT_RWLOCK_READ_UNLOCK_FAILURE  = (1u << 17),
-    PT_RWLOCK_WRITE_LOCK_FAILURE   = (1u << 18),
-    PT_RWLOCK_WRITE_UNLOCK_FAILURE = (1u << 19),
-    UNKNOWN                        = (1u << 20)
+    PT_RWLOCK_INIT_FAILURE         = (1u << 9),
+    PT_RWLOCK_DESTROY_FAILURE      = (1u << 10),
+    PT_RWLOCK_ATTR_INIT_FAILURE    = (1u << 11),
+    PT_RWLOCK_READ_LOCK_FAILURE    = (1u << 12),
+    PT_RWLOCK_READ_UNLOCK_FAILURE  = (1u << 13),
+    PT_RWLOCK_WRITE_LOCK_FAILURE   = (1u << 14),
+    PT_RWLOCK_WRITE_UNLOCK_FAILURE = (1u << 15),
+    UNKNOWN                        = (1u << 16)
 } BST_ERROR;
 // clang-format on
 
