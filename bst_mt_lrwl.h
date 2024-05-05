@@ -61,6 +61,8 @@ typedef struct bst_mt_lrwl {
              // during execution will request a write lock. RwLock is configured
              // to prefer write, otherwise, under heavy contention, only inserts
              // are executed.
+    size_t count;
+    pthread_rwlock_t crwl;
 } bst_mt_lrwl_t;
 
 // Prototypes
