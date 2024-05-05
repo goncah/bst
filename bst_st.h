@@ -79,7 +79,7 @@ bst_st_t *bst_st_new(BST_ERROR *err);
  *
  * UNKNOWN        - should never get here.
  */
-BST_ERROR bst_st_add(bst_st_t *bst, int64_t value);
+BST_ERROR bst_st_add(bst_st_t **bst, int64_t value);
 
 /**
  * Searches the BST for the given value.
@@ -93,7 +93,7 @@ BST_ERROR bst_st_add(bst_st_t *bst, int64_t value);
  *
  * VALUE_NONEXISTENT - value does not exist in the BST.
  */
-BST_ERROR bst_st_search(bst_st_t *bst, int64_t value);
+BST_ERROR bst_st_search(bst_st_t **bst, int64_t value);
 
 /**
  * Finds and places in value the min value in the BST.
@@ -107,7 +107,7 @@ BST_ERROR bst_st_search(bst_st_t *bst, int64_t value);
  *
  * SUCCESS   - min is placed in value if not NULL.
  */
-BST_ERROR bst_st_min(bst_st_t *bst, int64_t *value);
+BST_ERROR bst_st_min(bst_st_t **bst, int64_t *value);
 
 /**
  * Finds and places in value the max value in the BST.
@@ -121,7 +121,7 @@ BST_ERROR bst_st_min(bst_st_t *bst, int64_t *value);
  *
  * SUCCESS   - max is placed in value if not NULL.
  */
-BST_ERROR bst_st_max(bst_st_t *bst, int64_t *value);
+BST_ERROR bst_st_max(bst_st_t **bst, int64_t *value);
 
 /**
  * Calculates and places in value the BST height.
@@ -135,7 +135,7 @@ BST_ERROR bst_st_max(bst_st_t *bst, int64_t *value);
  *
  * SUCCESS   - height is placed in value if not NULL.
  */
-BST_ERROR bst_st_height(bst_st_t *bst, size_t *value);
+BST_ERROR bst_st_height(bst_st_t **bst, size_t *value);
 
 /**
  * Calculates and places in value the BST width.
@@ -152,7 +152,7 @@ BST_ERROR bst_st_height(bst_st_t *bst, size_t *value);
  *
  * SUCCESS        - height is placed in value if not NULL.
  */
-BST_ERROR bst_st_width(bst_st_t *bst, size_t *value);
+BST_ERROR bst_st_width(bst_st_t **bst, size_t *value);
 
 /**
  * Traverse and print the BST nodes preorder.
@@ -165,7 +165,7 @@ BST_ERROR bst_st_width(bst_st_t *bst, size_t *value);
  *
  * SUCCESS   - elements are written to stdout.
  */
-BST_ERROR bst_st_traverse_preorder(bst_st_t *bst);
+BST_ERROR bst_st_traverse_preorder(bst_st_t **bst);
 
 /**
  * Traverse and print the BST nodes inorder.
@@ -178,7 +178,7 @@ BST_ERROR bst_st_traverse_preorder(bst_st_t *bst);
  *
  * SUCCESS   - elements are written to stdout.
  */
-BST_ERROR bst_st_traverse_inorder(bst_st_t *bst);
+BST_ERROR bst_st_traverse_inorder(bst_st_t **bst);
 
 /**
  * Traverse and print the BST nodes postorder.
@@ -191,7 +191,7 @@ BST_ERROR bst_st_traverse_inorder(bst_st_t *bst);
  *
  * SUCCESS   - elements are written to stdout.
  */
-BST_ERROR bst_st_traverse_postorder(bst_st_t *bst);
+BST_ERROR bst_st_traverse_postorder(bst_st_t **bst);
 
 /**
  * Attempt to find and delete value from bst.
@@ -207,7 +207,7 @@ BST_ERROR bst_st_traverse_postorder(bst_st_t *bst);
  *
  * SUCCESS           - value found and deleted.
  */
-BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value);
+BST_ERROR bst_st_delete(bst_st_t **bst, int64_t value);
 
 /**
  * Height rebalance BST ST.
@@ -224,7 +224,7 @@ BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value);
  *
  * SUCCESS        - BST rebalanced.
  */
-BST_ERROR bst_st_rebalance(bst_st_t *bst);
+BST_ERROR bst_st_rebalance(bst_st_t **bst);
 
 /**
  * Frees a BST.
@@ -235,5 +235,5 @@ BST_ERROR bst_st_rebalance(bst_st_t *bst);
  *
  * SUCCESS  - bst and all nodes freed.
  */
-BST_ERROR bst_st_free(bst_st_t *bst);
+BST_ERROR bst_st_free(bst_st_t **bst);
 #endif // BST_ST_H_

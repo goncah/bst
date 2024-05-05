@@ -170,47 +170,47 @@ typedef struct test_bst_s {
     int64_t *values;
     test_bst_metrics *metrics;
     void *bst;
-    BST_ERROR (*add)(void *, int64_t);
-    BST_ERROR (*search)(void *, int64_t);
-    BST_ERROR (*min)(void *, int64_t *);
-    BST_ERROR (*max)(void *, int64_t *);
-    BST_ERROR (*height)(void *, int64_t *);
-    BST_ERROR (*width)(void *, int64_t *);
-    BST_ERROR (*delete)(void *, int64_t);
-    BST_ERROR (*rebalance)(void *);
+    BST_ERROR (*add)(void **, int64_t);
+    BST_ERROR (*search)(void **, int64_t);
+    BST_ERROR (*min)(void **, int64_t *);
+    BST_ERROR (*max)(void **, int64_t *);
+    BST_ERROR (*height)(void **, int64_t *);
+    BST_ERROR (*width)(void **, int64_t *);
+    BST_ERROR (*delete)(void **, int64_t);
+    BST_ERROR (*rebalance)(void **);
 } test_bst_s;
 
 void set_st_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(void *, int64_t))bst_st_add;
-    t->search = (BST_ERROR(*)(void *, int64_t))bst_st_search;
-    t->min = (BST_ERROR(*)(void *, int64_t *))bst_st_min;
-    t->max = (BST_ERROR(*)(void *, int64_t *))bst_st_max;
-    t->height = (BST_ERROR(*)(void *, int64_t *))bst_st_height;
-    t->width = (BST_ERROR(*)(void *, int64_t *))bst_st_width;
-    t->delete = (BST_ERROR(*)(void *, int64_t))bst_st_delete;
-    t->rebalance = (BST_ERROR(*)(void *))bst_st_rebalance;
+    t->add = (BST_ERROR(*)(void **, int64_t))bst_st_add;
+    t->search = (BST_ERROR(*)(void **, int64_t))bst_st_search;
+    t->min = (BST_ERROR(*)(void **, int64_t *))bst_st_min;
+    t->max = (BST_ERROR(*)(void **, int64_t *))bst_st_max;
+    t->height = (BST_ERROR(*)(void **, int64_t *))bst_st_height;
+    t->width = (BST_ERROR(*)(void **, int64_t *))bst_st_width;
+    t->delete = (BST_ERROR(*)(void **, int64_t))bst_st_delete;
+    t->rebalance = (BST_ERROR(*)(void **))bst_st_rebalance;
 }
 
 void set_mt_gmtx_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(void *, int64_t))bst_mt_grwl_add;
-    t->search = (BST_ERROR(*)(void *, int64_t))bst_mt_grwl_search;
-    t->min = (BST_ERROR(*)(void *, int64_t *))bst_mt_grwl_min;
-    t->max = (BST_ERROR(*)(void *, int64_t *))bst_mt_grwl_max;
-    t->height = (BST_ERROR(*)(void *, int64_t *))bst_mt_grwl_height;
-    t->width = (BST_ERROR(*)(void *, int64_t *))bst_mt_grwl_width;
-    t->delete = (BST_ERROR(*)(void *, int64_t))bst_mt_grwl_delete;
-    t->rebalance = (BST_ERROR(*)(void *))bst_mt_grwl_rebalance;
+    t->add = (BST_ERROR(*)(void **, int64_t))bst_mt_grwl_add;
+    t->search = (BST_ERROR(*)(void **, int64_t))bst_mt_grwl_search;
+    t->min = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_min;
+    t->max = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_max;
+    t->height = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_height;
+    t->width = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_width;
+    t->delete = (BST_ERROR(*)(void **, int64_t))bst_mt_grwl_delete;
+    t->rebalance = (BST_ERROR(*)(void **))bst_mt_grwl_rebalance;
 }
 
 void set_mt_lrwl_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(void *, int64_t))bst_mt_lrwl_add;
-    t->search = (BST_ERROR(*)(void *, int64_t))bst_mt_lrwl_search;
-    t->min = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_min;
-    t->max = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_max;
-    t->height = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_height;
-    t->width = (BST_ERROR(*)(void *, int64_t *))bst_mt_lrwl_width;
-    t->delete = (BST_ERROR(*)(void *, int64_t))bst_mt_lrwl_delete;
-    t->rebalance = (BST_ERROR(*)(void *))bst_mt_lrwl_rebalance;
+    t->add = (BST_ERROR(*)(void **, int64_t))bst_mt_lrwl_add;
+    t->search = (BST_ERROR(*)(void **, int64_t))bst_mt_lrwl_search;
+    t->min = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_min;
+    t->max = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_max;
+    t->height = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_height;
+    t->width = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_width;
+    t->delete = (BST_ERROR(*)(void **, int64_t))bst_mt_lrwl_delete;
+    t->rebalance = (BST_ERROR(*)(void **))bst_mt_lrwl_rebalance;
 }
 
 void *bst_st_test_insert_thread(void *vargp) {
@@ -221,7 +221,7 @@ void *bst_st_test_insert_thread(void *vargp) {
     test_bst_metrics *metrics = data->metrics;
 
     for (int64_t i = 0; i < operations; i++) {
-        if ((data->add(data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
+        if ((data->add(&data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
             PANIC("Failed to add element");
         }
         metrics->inserts++;
@@ -243,13 +243,14 @@ void *bst_st_test_write_thread(void *vargp) {
         int op = i < 3 ? 0 : rand_r(&seed) % 2;
 
         if (op == 0) {
-            if ((data->add(data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
+            if ((data->add(&data->bst, values[start + i]) & SUCCESS) !=
+                SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
         } else {
             BST_ERROR be =
-                data->delete (data->bst, values[start + rand_r(&seed) % i]);
+                data->delete (&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
                 (be & BST_EMPTY) != BST_EMPTY) {
@@ -272,16 +273,19 @@ void *bst_st_test_writeb_thread(void *vargp) {
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (int64_t i = 0; i < operations; i++) {
-        int op = i < 3 ? 0 : rand_r(&seed) % 3;
+        int op = i < 3                ? 0
+                 : i < operations / 2 ? rand_r(&seed) % 2
+                                      : rand_r(&seed) % 3;
 
         if (op == 0) {
-            if ((data->add(data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
+            if ((data->add(&data->bst, values[start + i]) & SUCCESS) !=
+                SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
         } else if (op == 1) {
             BST_ERROR be =
-                data->delete (data->bst, values[start + rand_r(&seed) % i]);
+                data->delete (&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
                 (be & BST_EMPTY) != BST_EMPTY) {
@@ -289,7 +293,7 @@ void *bst_st_test_writeb_thread(void *vargp) {
             }
             metrics->deletes++;
         } else {
-            BST_ERROR be = data->rebalance(data->bst);
+            BST_ERROR be = data->rebalance(&data->bst);
 
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to rebalance");
@@ -304,7 +308,6 @@ void *bst_st_test_writeb_thread(void *vargp) {
 
 void *bst_st_test_read_thread(void *vargp) {
     test_bst_s *data = (test_bst_s *)vargp;
-    bst_st_t *bst = (bst_st_t *)data->bst;
     size_t operations = data->operations;
     size_t start = data->start;
     int64_t *values = data->values;
@@ -317,7 +320,7 @@ void *bst_st_test_read_thread(void *vargp) {
 
         if (op == 0) {
             BST_ERROR be = data->search(
-                bst, values[start + rand_r(&seed) % (i != 0 ? i : 1)]);
+                &data->bst, values[start + rand_r(&seed) % (i != 0 ? i : 1)]);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
                 (be & VALUE_EXISTS) != VALUE_EXISTS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
@@ -325,25 +328,25 @@ void *bst_st_test_read_thread(void *vargp) {
             }
             metrics->searches++;
         } else if (op == 1) {
-            BST_ERROR be = data->min(bst, NULL);
+            BST_ERROR be = data->min(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST min");
             }
             metrics->mins++;
         } else if (op == 2) {
-            BST_ERROR be = data->max(bst, NULL);
+            BST_ERROR be = data->max(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST max");
             }
             metrics->maxs++;
         } else if (op == 3) {
-            BST_ERROR be = data->height(bst, NULL);
+            BST_ERROR be = data->height(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
             metrics->heights++;
         } else {
-            BST_ERROR be = data->width(bst, NULL);
+            BST_ERROR be = data->width(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
@@ -356,7 +359,6 @@ void *bst_st_test_read_thread(void *vargp) {
 
 void *bst_st_test_read_write_thread(void *vargp) {
     test_bst_s *data = (test_bst_s *)vargp;
-    bst_st_t *bst = (bst_st_t *)data->bst;
     size_t operations = data->operations;
     size_t start = data->start;
     int64_t *values = data->values;
@@ -365,16 +367,18 @@ void *bst_st_test_read_write_thread(void *vargp) {
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (int64_t i = 0; i < operations; i++) {
-        int op = i < 3 ? 0 : rand_r(&seed) % 8;
+        int op = i < 3                ? 0
+                 : i < operations / 2 ? rand_r(&seed) % 7
+                                      : rand_r(&seed) % 8;
 
         if (op == 0) {
-            if ((data->add(bst, values[start + i]) & SUCCESS) != SUCCESS) {
+            if ((data->add(&data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
         } else if (op == 1) {
             BST_ERROR be =
-                data->delete (bst, values[start + rand_r(&seed) % i]);
+                data->delete (&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
                 (be & BST_EMPTY) != BST_EMPTY) {
@@ -382,46 +386,46 @@ void *bst_st_test_read_write_thread(void *vargp) {
             }
             metrics->deletes++;
         } else if (op == 2) {
-            BST_ERROR be = data->rebalance(bst);
-
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to rebalance");
-            }
-            metrics->rebalances++;
-        } else if (op == 3) {
-            BST_ERROR be = data->search(bst, values[start + rand_r(&seed) % i]);
+            BST_ERROR be = data->search(&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
                 (be & VALUE_EXISTS) != VALUE_EXISTS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
                 PANIC("Failed to search element");
             }
             metrics->searches++;
-        } else if (op == 4) {
-            BST_ERROR be = data->min(bst, NULL);
+        } else if (op == 3) {
+            BST_ERROR be = data->min(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
                 (be & VALUE_EXISTS) != VALUE_EXISTS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
                 PANIC("Failed to find BST min");
             }
             metrics->mins++;
-        } else if (op == 5) {
-            BST_ERROR be = data->max(bst, NULL);
+        } else if (op == 4) {
+            BST_ERROR be = data->max(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST max");
             }
             metrics->maxs++;
-        } else if (op == 6) {
-            BST_ERROR be = data->height(bst, NULL);
+        } else if (op == 5) {
+            BST_ERROR be = data->height(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
             metrics->heights++;
-        } else {
-            BST_ERROR be = data->width(bst, NULL);
+        } else if (op == 6) {
+            BST_ERROR be = data->width(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
             metrics->widths++;
+        } else {
+            BST_ERROR be = data->rebalance(&data->bst);
+
+            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
+                PANIC("Failed to rebalance");
+            }
+            metrics->rebalances++;
         }
     }
 
@@ -476,57 +480,61 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
     test_bst_s t_data[threads];
 
     for (size_t i = 0; i < threads; i++) {
-        test_bst_s t;
-        t.operations = ti;
-        t.start = i * ti;
-        t.values = values;
-        t.metrics = bst_metrics_new();
+        test_bst_s *t = &t_data[i];
+        t->operations = ti;
+        t->start = i * ti;
+        t->values = values;
+        t->metrics = bst_metrics_new();
         switch (bt) {
         case ST:
-            set_st_functions(&t);
+            set_st_functions(t);
             break;
         case GRWL:
-            set_mt_gmtx_functions(&t);
+            set_mt_gmtx_functions(t);
             break;
         case LRWL:
-            set_mt_lrwl_functions(&t);
+            set_mt_lrwl_functions(t);
             break;
         }
 
-        t_data[i] = t;
+        if (i + 1 >= threads) {
+            t->operations += tr;
+        }
     }
-
-    t_data[threads - 1].operations += tr;
 
     for (int64_t r = 0; r < repeat; r++) {
         struct timeval start, end;
 
         void *bst = NULL;
+        void *bst__ = NULL;
 
         int add_elements = strat == READ ? 1 : 0;
 
         switch (bt) {
         case ST:
             bst = bst_st_new(NULL);
+            bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_st_add(bst, values[i]);
+                    bst_st_add(bst__, values[i]);
                 }
             }
             break;
         case GRWL:
             bst = bst_mt_grwl_new(NULL);
+            bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_mt_grwl_add(bst, values[i]);
+                    bst_mt_grwl_add(bst__, values[i]);
                 }
             }
             break;
         case LRWL:
             bst = bst_mt_lrwl_new(NULL);
+            bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_mt_lrwl_add(bst, values[i]);
+                    bst_mt_lrwl_add(bst__, values[i]);
                 }
             }
             break;
@@ -560,27 +568,27 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
         switch (bt) {
         case ST:
             nc = ((bst_st_t *)bst)->count;
-            bst_st_min(bst, &min);
-            bst_st_max(bst, &max);
-            bst_st_height(bst, &height);
-            bst_st_width(bst, &width);
-            bst_st_free(bst);
+            bst_st_min(bst__, &min);
+            bst_st_max(bst__, &max);
+            bst_st_height(bst__, &height);
+            bst_st_width(bst__, &width);
+            bst_st_free(bst__);
             break;
         case GRWL:
-            bst_mt_grwl_node_count(bst, &nc);
-            bst_mt_grwl_min(bst, &min);
-            bst_mt_grwl_max(bst, &max);
-            bst_mt_grwl_height(bst, &height);
-            bst_mt_grwl_width(bst, &width);
-            bst_mt_grwl_free(bst);
+            bst_mt_grwl_node_count(bst__, &nc);
+            bst_mt_grwl_min(bst__, &min);
+            bst_mt_grwl_max(bst__, &max);
+            bst_mt_grwl_height(bst__, &height);
+            bst_mt_grwl_width(bst__, &width);
+            bst_mt_grwl_free(bst__);
             break;
         case LRWL:
-            bst_mt_lrwl_node_count(bst, &nc);
-            bst_mt_lrwl_min(bst, &min);
-            bst_mt_lrwl_max(bst, &max);
-            bst_mt_lrwl_height(bst, &height);
-            bst_mt_lrwl_width(bst, &width);
-            bst_mt_lrwl_free(bst);
+            bst_mt_lrwl_node_count(bst__, &nc);
+            bst_mt_lrwl_min(bst__, &min);
+            bst_mt_lrwl_max(bst__, &max);
+            bst_mt_lrwl_height(bst__, &height);
+            bst_mt_lrwl_width(bst__, &width);
+            bst_mt_lrwl_free(bst__);
             break;
         }
 
@@ -606,6 +614,7 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
 
         printf("%s,", bst_type);
         printf("%s,", strat_type);
+        printf("%zu,", operations);
         printf("%zu,", threads);
         printf("%ld,", nc);
         printf("%ld,", min);
@@ -633,6 +642,10 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
             t_data[i].metrics->rebalances = 0;
         }
     }
+
+    for (size_t i = 0; i < threads; i++) {
+        free(t_data[i].metrics);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -652,14 +665,28 @@ int main(int argc, char **argv) {
             if (str2int(&operations, optarg) != STR2LLINT_SUCCESS) {
                 PANIC("Invalid value for option -o");
             }
+
+            if (operations < 1) {
+                PANIC("Invalid value for option -o");
+            }
+
             break;
         case 't':
             if (str2int(&threads, optarg) != STR2LLINT_SUCCESS) {
                 PANIC("Invalid value for option -t");
             }
+
+            if (threads < 1) {
+                PANIC("Invalid value for option -t");
+            }
+
             break;
         case 'r':
             if (str2int(&repeat, optarg) != STR2LLINT_SUCCESS) {
+                PANIC("Invalid value for option -r");
+            }
+
+            if (repeat < 1) {
                 PANIC("Invalid value for option -r");
             }
             break;
@@ -774,7 +801,7 @@ int main(int argc, char **argv) {
     }
 
     if ((type & GRWL) == GRWL && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, 1, GRWL, READ_WRITE, repeat, values);
+        bst_test(operations, threads, GRWL, READ_WRITE, repeat, values);
     }
 
     if ((type & LRWL) == LRWL && (strat & INSERT) == INSERT) {
@@ -794,7 +821,7 @@ int main(int argc, char **argv) {
     }
 
     if ((type & LRWL) == LRWL && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, 1, LRWL, READ_WRITE, repeat, values);
+        bst_test(operations, threads, LRWL, READ_WRITE, repeat, values);
     }
 
     return 0;

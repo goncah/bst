@@ -65,7 +65,7 @@ Options:
 
 ### Output
 #### Output is csv format with the following columns:
-<bst_type>, <strategy>,<#threads>,<#tree_node_count>,<tree_min>,<tree_max>,<tree_height>,<tree_width>,<time_taken>,<#inserts>,<#searches>,<#mins>,<#maxs>,<#heights>,<#widths>,<#deletes>,<#rebalances>
+<bst_type>,<strategy>,<#operations>,<#threads>,<#tree_node_count>,<tree_min>,<tree_max>,<tree_height>,<tree_width>,<time_taken>,<#inserts>,<#searches>,<#mins>,<#maxs>,<#heights>,<#widths>,<#deletes>,<#rebalances>
 
 ### Examples
 #### Run 100000 operations for all BST types, only insert strategy and do not repeat

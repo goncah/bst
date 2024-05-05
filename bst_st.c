@@ -75,26 +75,28 @@ bst_st_t *bst_st_new(BST_ERROR *err) {
     return bst;
 }
 
-BST_ERROR bst_st_add(bst_st_t *bst, int64_t value) {
-    if (bst == NULL) {
+BST_ERROR bst_st_add(bst_st_t **bst, int64_t value) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         BST_ERROR err;
         bst_st_node_t *node = bst_st_node_new(value, &err);
 
         if (IS_SUCCESS(err)) {
-            bst->root = node;
+            bst__->root = node;
         } else {
             return err;
         }
 
-        bst->count++;
+        bst__->count++;
         return SUCCESS;
     }
 
-    bst_st_node_t *root = bst->root;
+    bst_st_node_t *root = bst__->root;
 
     while (root != NULL) {
         if (value - root->value < 0) {
@@ -108,7 +110,7 @@ BST_ERROR bst_st_add(bst_st_t *bst, int64_t value) {
                     return err;
                 }
 
-                bst->count++;
+                bst__->count++;
                 return SUCCESS;
             }
 
@@ -124,7 +126,7 @@ BST_ERROR bst_st_add(bst_st_t *bst, int64_t value) {
                     return err;
                 }
 
-                bst->count++;
+                bst__->count++;
                 return SUCCESS;
             }
 
@@ -137,12 +139,14 @@ BST_ERROR bst_st_add(bst_st_t *bst, int64_t value) {
     return UNKNOWN; // Should never get here
 }
 
-BST_ERROR bst_st_search(bst_st_t *bst, int64_t value) {
-    if (bst == NULL) {
+BST_ERROR bst_st_search(bst_st_t **bst, int64_t value) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_st_node_t *root = bst->root;
+    bst_st_t *bst__ = *bst;
+
+    bst_st_node_t *root = bst__->root;
 
     while (root != NULL) {
         if (root->value == value) {
@@ -157,16 +161,18 @@ BST_ERROR bst_st_search(bst_st_t *bst, int64_t value) {
     return VALUE_NONEXISTENT;
 }
 
-BST_ERROR bst_st_min(bst_st_t *bst, int64_t *value) {
-    if (bst == NULL) {
+BST_ERROR bst_st_min(bst_st_t **bst, int64_t *value) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
-    bst_st_node_t *root = bst->root;
+    bst_st_node_t *root = bst__->root;
 
     while (root->left != NULL) {
         root = root->left;
@@ -179,16 +185,18 @@ BST_ERROR bst_st_min(bst_st_t *bst, int64_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_st_max(bst_st_t *bst, int64_t *value) {
-    if (bst == NULL) {
+BST_ERROR bst_st_max(bst_st_t **bst, int64_t *value) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
-    bst_st_node_t *root = bst->root;
+    bst_st_node_t *root = bst__->root;
 
     while (root->right != NULL) {
         root = root->right;
@@ -201,12 +209,14 @@ BST_ERROR bst_st_max(bst_st_t *bst, int64_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_st_height(bst_st_t *bst, size_t *value) {
-    if (bst == NULL) {
+BST_ERROR bst_st_height(bst_st_t **bst, size_t *value) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
@@ -217,7 +227,7 @@ BST_ERROR bst_st_height(bst_st_t *bst, size_t *value) {
         size_t depth;
     };
 
-    struct Stack *stack = malloc(sizeof *stack * bst->count);
+    struct Stack *stack = malloc(sizeof *stack * bst__->count);
 
     if (stack == NULL) {
 
@@ -227,7 +237,7 @@ BST_ERROR bst_st_height(bst_st_t *bst, size_t *value) {
     size_t stack_size = 0;
 
     // Initial push of the root node with depth 0
-    stack[stack_size++] = (struct Stack){bst->root, 0};
+    stack[stack_size++] = (struct Stack){bst__->root, 0};
 
     size_t max_depth = 0;
 
@@ -262,17 +272,19 @@ BST_ERROR bst_st_height(bst_st_t *bst, size_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_st_width(bst_st_t *bst, size_t *value) {
-    if (bst == NULL) {
+BST_ERROR bst_st_width(bst_st_t **bst, size_t *value) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
     size_t w = 0;
-    bst_st_node_t **q = malloc(sizeof **q * bst->count);
+    bst_st_node_t **q = malloc(sizeof **q * bst__->count);
 
     if (q == NULL) {
         return MALLOC_FAILURE;
@@ -280,7 +292,7 @@ BST_ERROR bst_st_width(bst_st_t *bst, size_t *value) {
 
     size_t f = 0, r = 0;
 
-    q[r++] = bst->root;
+    q[r++] = bst__->root;
 
     while (f < r) {
         size_t count = r - f;
@@ -315,16 +327,18 @@ void bst_st_node_traverse_preorder(bst_st_node_t *node) {
     }
 }
 
-BST_ERROR bst_st_traverse_preorder(bst_st_t *bst) {
-    if (bst == NULL) {
+BST_ERROR bst_st_traverse_preorder(bst_st_t **bst) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
-    bst_st_node_traverse_preorder(bst->root);
+    bst_st_node_traverse_preorder(bst__->root);
     printf("\n");
 
     return SUCCESS;
@@ -338,16 +352,18 @@ void bst_st_node_traverse_inorder(bst_st_node_t *node) {
     }
 }
 
-BST_ERROR bst_st_traverse_inorder(bst_st_t *bst) {
-    if (bst == NULL) {
+BST_ERROR bst_st_traverse_inorder(bst_st_t **bst) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
-    bst_st_node_traverse_inorder(bst->root);
+    bst_st_node_traverse_inorder(bst__->root);
     printf("\n");
 
     return SUCCESS;
@@ -361,31 +377,39 @@ void bst_st_node_traverse_postorder(bst_st_node_t *node) {
     }
 }
 
-BST_ERROR bst_st_traverse_postorder(bst_st_t *bst) {
-    if (bst == NULL) {
+BST_ERROR bst_st_traverse_postorder(bst_st_t **bst) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
-    bst_st_node_traverse_postorder(bst->root);
+    bst_st_node_traverse_postorder(bst__->root);
     printf("\n");
 
     return SUCCESS;
 }
 
-BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value) {
+BST_ERROR bst_st_delete(bst_st_t **bst, int64_t value) {
+    if (bst == NULL || *bst == NULL) {
+        return BST_NULL;
+    }
+
+    bst_st_t *bst__ = *bst;
+
     if (bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
-    bst_st_node_t *current = bst->root, *parent = NULL;
+    bst_st_node_t *current = bst__->root, *parent = NULL;
 
     // Find the node
     while (current != NULL && current->value != value) {
@@ -425,7 +449,7 @@ BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value) {
     bst_st_node_t *child =
         (current->left != NULL) ? current->left : current->right;
     if (parent == NULL) {
-        bst->root = child; // Delete the root node
+        bst__->root = child; // Delete the root node
     } else if (parent->left == current) {
         parent->left = child;
     } else {
@@ -433,7 +457,7 @@ BST_ERROR bst_st_delete(bst_st_t *bst, int64_t value) {
     }
 
     free(current);
-    bst->count--;
+    bst__->count--;
     return SUCCESS;
 }
 
@@ -516,31 +540,33 @@ bst_st_node_t *array_to_bst(int64_t arr[], int64_t start, int64_t end,
     return NULL;
 }
 
-BST_ERROR bst_st_rebalance(bst_st_t *bst) {
-    if (bst == NULL) {
+BST_ERROR bst_st_rebalance(bst_st_t **bst) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    if (bst->root == NULL) {
+    bst_st_t *bst__ = *bst;
+
+    if (bst__->root == NULL) {
         return BST_EMPTY;
     }
 
-    int64_t *inorder = malloc(sizeof *inorder * bst->count);
+    int64_t *inorder = malloc(sizeof *inorder * bst__->count);
 
     if (inorder == NULL) {
         return MALLOC_FAILURE;
     }
 
     int64_t index = 0;
-    save_inorder(bst->root, inorder, &index);
+    save_inorder(bst__->root, inorder, &index);
 
-    bst_node_free(bst->root);
+    bst_node_free(bst__->root);
 
     BST_ERROR err;
-    bst->root = array_to_bst(inorder, 0, index - 1, &err);
+    bst__->root = array_to_bst(inorder, 0, index - 1, &err);
 
     if (IS_SUCCESS(err)) {
-        bst->count = index;
+        bst__->count = index;
         free(inorder);
         return SUCCESS;
     }
@@ -550,14 +576,18 @@ BST_ERROR bst_st_rebalance(bst_st_t *bst) {
     return err;
 }
 
-BST_ERROR bst_st_free(bst_st_t *bst) {
-    if (bst == NULL) {
+BST_ERROR bst_st_free(bst_st_t **bst) {
+    if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_node_free(bst->root);
+    bst_st_t *bst__ = *bst;
 
-    free(bst);
+    *bst = NULL;
+
+    bst_node_free(bst__->root);
+
+    free(bst__);
 
     return SUCCESS;
 }
