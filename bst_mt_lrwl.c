@@ -252,7 +252,8 @@ BST_ERROR bst_mt_lrwl_add(bst_mt_lrwl_t **bst, int64_t value) {
                 }
                 continue;
             } else {
-                if (pthread_rwlock_unlock(&bst__->rwl)) {
+                if (pthread_rwlock_unlock(&root->rwl) ||
+                    pthread_rwlock_unlock(&bst__->rwl)) {
                     return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED;
                 }
                 return VALUE_EXISTS;
@@ -347,7 +348,8 @@ BST_ERROR bst_mt_lrwl_add(bst_mt_lrwl_t **bst, int64_t value) {
                 }
                 continue;
             } else {
-                if (pthread_rwlock_unlock(&bst__->rwl)) {
+                if (pthread_rwlock_unlock(&root->rwl) ||
+                    pthread_rwlock_unlock(&bst__->rwl)) {
                     return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED;
                 }
                 return VALUE_EXISTS;
