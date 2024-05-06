@@ -128,14 +128,11 @@ enum test_strat {
     // Random inserts, deletes
     WRITE = (1u << 2),
 
-    // Random inserts, deletes and rebalance
-    WRITEB = (1u << 3),
-
     // Random search, min, max, height and width
-    READ = (1u << 4),
+    READ = (1u << 3),
 
     // Random inserts, deletes, search, min, max, height and width
-    READ_WRITE = (1u << 6),
+    READ_WRITE = (1u << 4),
 };
 
 typedef struct test_bst_metrics {
@@ -263,49 +260,6 @@ void *bst_st_test_write_thread(void *vargp) {
     return NULL;
 }
 
-void *bst_st_test_writeb_thread(void *vargp) {
-    test_bst_s *data = (test_bst_s *)vargp;
-    size_t operations = data->operations;
-    size_t start = data->start;
-    int64_t *values = data->values;
-    test_bst_metrics *metrics = data->metrics;
-
-    uint seed = mix(clock(), time(NULL), getpid());
-
-    for (int64_t i = 0; i < operations; i++) {
-        int op = i < 3                ? 0
-                 : i < operations / 2 ? rand_r(&seed) % 2
-                                      : rand_r(&seed) % 3;
-
-        if (op == 0) {
-            if ((data->add(&data->bst, values[start + i]) & SUCCESS) !=
-                SUCCESS) {
-                PANIC("Failed to add element");
-            }
-            metrics->inserts++;
-        } else if (op == 1) {
-            BST_ERROR be =
-                data->delete (&data->bst, values[start + rand_r(&seed) % i]);
-            if ((be & SUCCESS) != SUCCESS &&
-                (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
-                (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to delete element");
-            }
-            metrics->deletes++;
-        } else {
-            BST_ERROR be = data->rebalance(&data->bst);
-
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to rebalance");
-            }
-
-            metrics->rebalances++;
-        }
-    }
-
-    return NULL;
-}
-
 void *bst_st_test_read_thread(void *vargp) {
     test_bst_s *data = (test_bst_s *)vargp;
     size_t operations = data->operations;
@@ -367,12 +321,11 @@ void *bst_st_test_read_write_thread(void *vargp) {
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (int64_t i = 0; i < operations; i++) {
-        int op = i < 3                ? 0
-                 : i < operations / 2 ? rand_r(&seed) % 7
-                                      : rand_r(&seed) % 8;
+        int op = i < 3 ? 0 : rand_r(&seed) % 7;
 
         if (op == 0) {
-            if ((data->add(&data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
+            if ((data->add(&data->bst, values[start + i]) & SUCCESS) !=
+                SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
@@ -386,7 +339,8 @@ void *bst_st_test_read_write_thread(void *vargp) {
             }
             metrics->deletes++;
         } else if (op == 2) {
-            BST_ERROR be = data->search(&data->bst, values[start + rand_r(&seed) % i]);
+            BST_ERROR be =
+                data->search(&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
                 (be & VALUE_EXISTS) != VALUE_EXISTS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
@@ -413,19 +367,12 @@ void *bst_st_test_read_write_thread(void *vargp) {
                 PANIC("Failed to find BST height");
             }
             metrics->heights++;
-        } else if (op == 6) {
+        } else {
             BST_ERROR be = data->width(&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
             metrics->widths++;
-        } else {
-            BST_ERROR be = data->rebalance(&data->bst);
-
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to rebalance");
-            }
-            metrics->rebalances++;
         }
     }
 
@@ -459,10 +406,6 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
     case WRITE:
         strat_type = "WRITE";
         function = bst_st_test_write_thread;
-        break;
-    case WRITEB:
-        strat_type = "WRITEB";
-        function = bst_st_test_writeb_thread;
         break;
     case READ:
         strat_type = "READ";
@@ -630,6 +573,7 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
         printf("%ld,", widths);
         printf("%ld,", deletes);
         printf("%ld\n", rebalances);
+        fflush(stdout);
 
         for (size_t i = 0; i < threads; i++) {
             t_data[i].metrics->inserts = 0;
@@ -693,10 +637,6 @@ int main(int argc, char **argv) {
         case 's':
             if (strncmp(optarg, "insert", 6) == 0) {
                 strat = strat | INSERT;
-                break;
-            }
-            if (strncmp(optarg, "writeb", 6) == 0) {
-                strat = strat | WRITEB;
                 break;
             }
             if (strncmp(optarg, "write", 5) == 0) {
@@ -772,10 +712,6 @@ int main(int argc, char **argv) {
         bst_test(operations, 1, ST, WRITE, repeat, values);
     }
 
-    if ((type & ST) == ST && (strat & WRITEB) == WRITEB) {
-        bst_test(operations, 1, ST, WRITEB, repeat, values);
-    }
-
     if ((type & ST) == ST && (strat & READ) == READ) {
         bst_test(operations, 1, ST, READ, repeat, values);
     }
@@ -792,10 +728,6 @@ int main(int argc, char **argv) {
         bst_test(operations, threads, GRWL, WRITE, repeat, values);
     }
 
-    if ((type & GRWL) == GRWL && (strat & WRITEB) == WRITEB) {
-        bst_test(operations, threads, GRWL, WRITEB, repeat, values);
-    }
-
     if ((type & GRWL) == GRWL && (strat & READ) == READ) {
         bst_test(operations, threads, GRWL, READ, repeat, values);
     }
@@ -810,10 +742,6 @@ int main(int argc, char **argv) {
 
     if ((type & LRWL) == LRWL && (strat & WRITE) == WRITE) {
         bst_test(operations, threads, LRWL, WRITE, repeat, values);
-    }
-
-    if ((type & LRWL) == LRWL && (strat & WRITEB) == WRITEB) {
-        bst_test(operations, threads, LRWL, WRITEB, repeat, values);
     }
 
     if ((type & LRWL) == LRWL && (strat & READ) == READ) {

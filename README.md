@@ -21,17 +21,17 @@ $ cmake --build out --target all
 
 ### Compile bst libraries
 
-$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_st.so bst_st_t.c -lpthread
+$ gcc -Wall -Wextra -Ofast -shared -fPIC -o out/libbst_st.so bst_st_t.c -lpthread
 
-$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_grwl.so bst_mt_grwl_t.c -lpthread
+$ gcc -Wall -Wextra -Ofast -shared -fPIC -o out/libbst_mt_grwl.so bst_mt_grwl_t.c -lpthread
 
-$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_lmtx.so bst_mt_lrwl_t.c -lpthread
+$ gcc -Wall -Wextra -Ofast -shared -fPIC -o out/libbst_mt_lmtx.so bst_mt_lrwl_t.c -lpthread
 
-$ gcc -Wall -Wextra -shared -fPIC -o out/libbst_mt_cas.so bst_mt_cas.c -lpthread
+$ gcc -Wall -Wextra -Ofast -shared -fPIC -o out/libbst_mt_cas.so bst_mt_cas.c -lpthread
 
 ### Compile the test executable
 
-gcc -Wall -Wextra -Lout/ -o out/test_bst main.c -pthread -lbst_st -lbst_mt_grwl -lbst_mt_lmtx -lbst_mt_cas
+gcc -Wall -Wextra -Ofast -Lout/ -o out/test_bst main.c -pthread -lbst_st -lbst_mt_grwl -lbst_mt_lmtx -lbst_mt_cas
 
 ## Test executable usage
 
@@ -53,7 +53,6 @@ Options:
 -s < strategy > Set the test strategy. Multiple strategies can be set, example -s 1 -s 2 -s 3. Available strategies are:
    insert     - Inserts only with random generated numbers.
    write      - Random inserts, deletes with random generated numbers.
-   writeb     - Random inserts, deletes and rebalance with random generated numbers.
    read       - Random search, min, max, height and width. -o sets the number of elements in the read.
    read_write - Random inserts, deletes, search, min, max, height and width with random generated numbers.
 
@@ -73,9 +72,6 @@ $ bst -o 100000 -g -l -c -s insert -r 1 -t 20
 
 #### Run 100000 operations for all BST types, insert and write strategy and do not repeat
 $ bst -o 100000 -g -l -c -s insert -s write -r 1 -t 20
-
-#### Run 10000 operations only for BST ST, only read strategy and do not repeat
-$ bst -o 10000 -c -s read -r 1
 
 #### Run 10000 operations only for BST ST, only read strategy and do not repeat
 $ bst -o 10000 -c -s read -r 1
