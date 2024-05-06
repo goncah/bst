@@ -217,7 +217,7 @@ void *bst_st_test_insert_thread(void *vargp) {
     int64_t *values = data->values;
     test_bst_metrics *metrics = data->metrics;
 
-    for (int64_t i = 0; i < operations; i++) {
+    for (size_t i = 0; i < operations; i++) {
         if ((data->add(&data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
             PANIC("Failed to add element");
         }
@@ -236,7 +236,7 @@ void *bst_st_test_write_thread(void *vargp) {
 
     uint seed = mix(clock(), time(NULL), getpid());
 
-    for (int64_t i = 0; i < operations; i++) {
+    for (size_t i = 0; i < operations; i++) {
         int op = i < 3 ? 0 : rand_r(&seed) % 2;
 
         if (op == 0) {
@@ -269,7 +269,7 @@ void *bst_st_test_read_thread(void *vargp) {
 
     uint seed = mix(clock(), time(NULL), getpid());
 
-    for (int64_t i = 0; i < operations; i++) {
+    for (size_t i = 0; i < operations; i++) {
         int op = rand_r(&seed) % 5;
 
         if (op == 0) {
@@ -320,7 +320,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
 
     uint seed = mix(clock(), time(NULL), getpid());
 
-    for (int64_t i = 0; i < operations; i++) {
+    for (size_t i = 0; i < operations; i++) {
         int op = i < 3 ? 0 : rand_r(&seed) % 7;
 
         if (op == 0) {
