@@ -752,5 +752,6 @@ int main(int argc, char **argv) {
         bst_test(operations, threads, LRWL, READ_WRITE, repeat, values);
     }
 
+    free(values);
     return 0;
 }
