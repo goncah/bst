@@ -14,8 +14,8 @@
 #include "bst_mt_lrwl.h"
 #include "bst_st.h"
 
-char *usage() {
-    char *msg = "\
+const char *usage() {
+    const char *msg = "\
 Usage:\n\
     $ bst <options>\n\
 \n\
@@ -72,7 +72,7 @@ uint64_t mix(uint64_t a, uint64_t b, uint64_t c) {
 
 // Swap two signed long integers
 void swap(int64_t *a, int64_t *b) {
-    int64_t t = *b;
+    const int64_t t = *b;
 
     *b = *a;
     *a = t;
@@ -80,11 +80,11 @@ void swap(int64_t *a, int64_t *b) {
 
 // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
 // shuffle an array of signed long integers
-void fisher_yates_shuffle(size_t n, int64_t *a) {
+void fisher_yates_shuffle(const size_t n, int64_t *a) {
     srand(mix(clock(), time(NULL), getpid()));
 
     for (size_t i = n - 1; i > 0; i--) {
-        size_t j = rand() % i;
+        const size_t j = rand() % i;
 
         swap(&a[j], &a[i]);
     }
@@ -98,12 +98,12 @@ typedef enum {
 } str2int_errno;
 
 // Safely convert string to signed long
-str2int_errno str2int(int64_t *out, char *s) {
+str2int_errno str2int(int64_t *out, const char *s) {
     char *end;
     if (s[0] == '\0' || isspace(s[0]))
         return STR2LLINT_INCONVERTIBLE;
     errno = 0;
-    int64_t l = strtol(s, &end, 10);
+    const int64_t l = strtol(s, &end, 10);
 
     if (errno == ERANGE && l == LONG_MAX)
         return STR2LLINT_OVERFLOW;
@@ -167,58 +167,59 @@ typedef struct test_bst_s {
     int64_t *values;
     test_bst_metrics *metrics;
     void *bst;
-    BST_ERROR (*add)(void **, int64_t);
-    BST_ERROR (*search)(void **, int64_t);
-    BST_ERROR (*min)(void **, int64_t *);
-    BST_ERROR (*max)(void **, int64_t *);
-    BST_ERROR (*height)(void **, int64_t *);
-    BST_ERROR (*width)(void **, int64_t *);
-    BST_ERROR (*delete)(void **, int64_t);
-    BST_ERROR (*rebalance)(void **);
+    BST_ERROR (*add)(const void **, int64_t);
+    BST_ERROR (*search)(const void **, int64_t);
+    BST_ERROR (*min)(const void **, int64_t *);
+    BST_ERROR (*max)(const void **, int64_t *);
+    BST_ERROR (*height)(const void **, int64_t *);
+    BST_ERROR (*width)(const void **, int64_t *);
+    BST_ERROR (*delete)(const void **, int64_t);
+    BST_ERROR (*rebalance)(const void **);
 } test_bst_s;
 
 void set_st_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(void **, int64_t))bst_st_add;
-    t->search = (BST_ERROR(*)(void **, int64_t))bst_st_search;
-    t->min = (BST_ERROR(*)(void **, int64_t *))bst_st_min;
-    t->max = (BST_ERROR(*)(void **, int64_t *))bst_st_max;
-    t->height = (BST_ERROR(*)(void **, int64_t *))bst_st_height;
-    t->width = (BST_ERROR(*)(void **, int64_t *))bst_st_width;
-    t->delete = (BST_ERROR(*)(void **, int64_t))bst_st_delete;
-    t->rebalance = (BST_ERROR(*)(void **))bst_st_rebalance;
+    t->add = (BST_ERROR(*)(const void **, int64_t))bst_st_add;
+    t->search = (BST_ERROR(*)(const void **, int64_t))bst_st_search;
+    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_st_min;
+    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_st_max;
+    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_st_height;
+    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_st_width;
+    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_st_delete;
+    t->rebalance = (BST_ERROR(*)(const void **))bst_st_rebalance;
 }
 
 void set_mt_gmtx_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(void **, int64_t))bst_mt_grwl_add;
-    t->search = (BST_ERROR(*)(void **, int64_t))bst_mt_grwl_search;
-    t->min = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_min;
-    t->max = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_max;
-    t->height = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_height;
-    t->width = (BST_ERROR(*)(void **, int64_t *))bst_mt_grwl_width;
-    t->delete = (BST_ERROR(*)(void **, int64_t))bst_mt_grwl_delete;
-    t->rebalance = (BST_ERROR(*)(void **))bst_mt_grwl_rebalance;
+    t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_grwl_add;
+    t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_grwl_search;
+    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_min;
+    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_max;
+    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_height;
+    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_width;
+    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_grwl_delete;
+    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_grwl_rebalance;
 }
 
 void set_mt_lrwl_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(void **, int64_t))bst_mt_lrwl_add;
-    t->search = (BST_ERROR(*)(void **, int64_t))bst_mt_lrwl_search;
-    t->min = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_min;
-    t->max = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_max;
-    t->height = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_height;
-    t->width = (BST_ERROR(*)(void **, int64_t *))bst_mt_lrwl_width;
-    t->delete = (BST_ERROR(*)(void **, int64_t))bst_mt_lrwl_delete;
-    t->rebalance = (BST_ERROR(*)(void **))bst_mt_lrwl_rebalance;
+    t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_lrwl_add;
+    t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_lrwl_search;
+    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_min;
+    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_max;
+    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_height;
+    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_width;
+    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_lrwl_delete;
+    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_lrwl_rebalance;
 }
 
 void *bst_st_test_insert_thread(void *vargp) {
-    test_bst_s *data = (test_bst_s *)vargp;
-    size_t operations = data->operations;
-    size_t start = data->start;
-    int64_t *values = data->values;
+    const test_bst_s *data = (test_bst_s *)vargp;
+    const size_t operations = data->operations;
+    const size_t start = data->start;
+    const int64_t *values = data->values;
     test_bst_metrics *metrics = data->metrics;
 
     for (size_t i = 0; i < operations; i++) {
-        if ((data->add(&data->bst, values[start + i]) & SUCCESS) != SUCCESS) {
+        if ((data->add((const void **)&data->bst, values[start + i]) &
+             SUCCESS) != SUCCESS) {
             PANIC("Failed to add element");
         }
         metrics->inserts++;
@@ -228,26 +229,26 @@ void *bst_st_test_insert_thread(void *vargp) {
 }
 
 void *bst_st_test_write_thread(void *vargp) {
-    test_bst_s *data = (test_bst_s *)vargp;
-    size_t operations = data->operations;
-    size_t start = data->start;
-    int64_t *values = data->values;
+    const test_bst_s *data = (test_bst_s *)vargp;
+    const size_t operations = data->operations;
+    const size_t start = data->start;
+    const int64_t *values = data->values;
     test_bst_metrics *metrics = data->metrics;
 
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (size_t i = 0; i < operations; i++) {
-        int op = i < 3 ? 0 : rand_r(&seed) % 2;
+        const int op = i < 3 ? 0 : rand_r(&seed) % 2;
 
         if (op == 0) {
-            if ((data->add(&data->bst, values[start + i]) & SUCCESS) !=
-                SUCCESS) {
+            if ((data->add((const void **)&data->bst, values[start + i]) &
+                 SUCCESS) != SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
         } else {
-            BST_ERROR be =
-                data->delete (&data->bst, values[start + rand_r(&seed) % i]);
+            const BST_ERROR be = data->delete (
+                (const void **)&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
                 (be & BST_EMPTY) != BST_EMPTY) {
@@ -261,20 +262,21 @@ void *bst_st_test_write_thread(void *vargp) {
 }
 
 void *bst_st_test_read_thread(void *vargp) {
-    test_bst_s *data = (test_bst_s *)vargp;
-    size_t operations = data->operations;
-    size_t start = data->start;
-    int64_t *values = data->values;
+    const test_bst_s *data = (test_bst_s *)vargp;
+    const size_t operations = data->operations;
+    const size_t start = data->start;
+    const int64_t *values = data->values;
     test_bst_metrics *metrics = data->metrics;
 
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (size_t i = 0; i < operations; i++) {
-        int op = rand_r(&seed) % 5;
+        const int op = rand_r(&seed) % 5;
 
         if (op == 0) {
-            BST_ERROR be = data->search(
-                &data->bst, values[start + rand_r(&seed) % (i != 0 ? i : 1)]);
+            const BST_ERROR be =
+                data->search((const void **)&data->bst,
+                             values[start + rand_r(&seed) % (i != 0 ? i : 1)]);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
                 (be & VALUE_EXISTS) != VALUE_EXISTS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
@@ -282,25 +284,25 @@ void *bst_st_test_read_thread(void *vargp) {
             }
             metrics->searches++;
         } else if (op == 1) {
-            BST_ERROR be = data->min(&data->bst, NULL);
+            const BST_ERROR be = data->min((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST min");
             }
             metrics->mins++;
         } else if (op == 2) {
-            BST_ERROR be = data->max(&data->bst, NULL);
+            const BST_ERROR be = data->max((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST max");
             }
             metrics->maxs++;
         } else if (op == 3) {
-            BST_ERROR be = data->height(&data->bst, NULL);
+            const BST_ERROR be = data->height((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
             metrics->heights++;
         } else {
-            BST_ERROR be = data->width(&data->bst, NULL);
+            const BST_ERROR be = data->width((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
@@ -312,26 +314,26 @@ void *bst_st_test_read_thread(void *vargp) {
 }
 
 void *bst_st_test_read_write_thread(void *vargp) {
-    test_bst_s *data = (test_bst_s *)vargp;
-    size_t operations = data->operations;
-    size_t start = data->start;
-    int64_t *values = data->values;
+    const test_bst_s *data = (test_bst_s *)vargp;
+    const size_t operations = data->operations;
+    const size_t start = data->start;
+    const int64_t *values = data->values;
     test_bst_metrics *metrics = data->metrics;
 
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (size_t i = 0; i < operations; i++) {
-        int op = i < 3 ? 0 : rand_r(&seed) % 7;
+        const int op = i < 3 ? 0 : rand_r(&seed) % 7;
 
         if (op == 0) {
-            if ((data->add(&data->bst, values[start + i]) & SUCCESS) !=
-                SUCCESS) {
+            if ((data->add((const void **)&data->bst, values[start + i]) &
+                 SUCCESS) != SUCCESS) {
                 PANIC("Failed to add element");
             }
             metrics->inserts++;
         } else if (op == 1) {
-            BST_ERROR be =
-                data->delete (&data->bst, values[start + rand_r(&seed) % i]);
+            const BST_ERROR be = data->delete (
+                (const void **)&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
                 (be & BST_EMPTY) != BST_EMPTY) {
@@ -339,8 +341,8 @@ void *bst_st_test_read_write_thread(void *vargp) {
             }
             metrics->deletes++;
         } else if (op == 2) {
-            BST_ERROR be =
-                data->search(&data->bst, values[start + rand_r(&seed) % i]);
+            const BST_ERROR be = data->search(
+                (const void **)&data->bst, values[start + rand_r(&seed) % i]);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
                 (be & VALUE_EXISTS) != VALUE_EXISTS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
@@ -348,7 +350,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
             }
             metrics->searches++;
         } else if (op == 3) {
-            BST_ERROR be = data->min(&data->bst, NULL);
+            const BST_ERROR be = data->min((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
                 (be & VALUE_EXISTS) != VALUE_EXISTS &&
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
@@ -356,19 +358,19 @@ void *bst_st_test_read_write_thread(void *vargp) {
             }
             metrics->mins++;
         } else if (op == 4) {
-            BST_ERROR be = data->max(&data->bst, NULL);
+            const BST_ERROR be = data->max((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST max");
             }
             metrics->maxs++;
         } else if (op == 5) {
-            BST_ERROR be = data->height(&data->bst, NULL);
+            const BST_ERROR be = data->height((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
             metrics->heights++;
         } else {
-            BST_ERROR be = data->width(&data->bst, NULL);
+            const BST_ERROR be = data->width((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
             }
@@ -379,8 +381,9 @@ void *bst_st_test_read_write_thread(void *vargp) {
     return NULL;
 }
 
-void bst_test(int64_t operations, size_t threads, enum bst_type bt,
-              enum test_strat strat, size_t repeat, int64_t *values) {
+void bst_test(const int64_t operations, const size_t threads,
+              const enum bst_type bt, const enum test_strat strat,
+              const size_t repeat, int64_t *values) {
     char *bst_type = NULL;
     char *strat_type = NULL;
 
@@ -417,8 +420,8 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
         break;
     }
 
-    size_t ti = operations / threads;
-    size_t tr = operations % threads;
+    const size_t ti = operations / threads;
+    const size_t tr = operations % threads;
 
     test_bst_s t_data[threads];
 
@@ -448,10 +451,10 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
     for (int64_t r = 0; r < repeat; r++) {
         struct timeval start, end;
 
-        void *bst = NULL;
-        void *bst__ = NULL;
+        const void *bst = NULL;
+        const void *bst__ = NULL;
 
-        int add_elements = strat == READ ? 1 : 0;
+        const int add_elements = strat == READ ? 1 : 0;
 
         switch (bt) {
         case ST:
@@ -459,7 +462,7 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
             bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_st_add(bst__, values[i]);
+                    bst_st_add((bst_st_t **)bst__, values[i]);
                 }
             }
             break;
@@ -468,7 +471,7 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
             bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_mt_grwl_add(bst__, values[i]);
+                    bst_mt_grwl_add((bst_mt_grwl_t **)bst__, values[i]);
                 }
             }
             break;
@@ -477,14 +480,14 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
             bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_mt_lrwl_add(bst__, values[i]);
+                    bst_mt_lrwl_add((bst_mt_lrwl_t **)bst__, values[i]);
                 }
             }
             break;
         }
 
         for (size_t i = 0; i < threads; i++) {
-            t_data[i].bst = bst;
+            t_data[i].bst = (void *)bst;
         }
 
         gettimeofday(&start, NULL);
@@ -492,7 +495,7 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
         for (int i = 0; i < threads; i++) {
             if (pthread_create(&thread[i], NULL, function, &t_data[i])) {
                 PANIC("pthread_create() failure");
-            };
+            }
         }
 
         for (int i = 0; i < threads; i++) {
@@ -502,7 +505,7 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
         }
 
         gettimeofday(&end, NULL);
-        double time_taken =
+        const double time_taken =
             end.tv_sec + end.tv_usec / 1e6 - start.tv_sec - start.tv_usec / 1e6;
 
         size_t nc = 0, height = 0, width = 0;
@@ -511,27 +514,27 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
         switch (bt) {
         case ST:
             nc = ((bst_st_t *)bst)->count;
-            bst_st_min(bst__, &min);
-            bst_st_max(bst__, &max);
-            bst_st_height(bst__, &height);
-            bst_st_width(bst__, &width);
-            bst_st_free(bst__);
+            bst_st_min((bst_st_t **)bst__, &min);
+            bst_st_max((bst_st_t **)bst__, &max);
+            bst_st_height((bst_st_t **)bst__, &height);
+            bst_st_width((bst_st_t **)bst__, &width);
+            bst_st_free((bst_st_t **)bst__);
             break;
         case GRWL:
-            bst_mt_grwl_node_count(bst__, &nc);
-            bst_mt_grwl_min(bst__, &min);
-            bst_mt_grwl_max(bst__, &max);
-            bst_mt_grwl_height(bst__, &height);
-            bst_mt_grwl_width(bst__, &width);
-            bst_mt_grwl_free(bst__);
+            bst_mt_grwl_node_count((bst_mt_grwl_t **)bst__, &nc);
+            bst_mt_grwl_min((bst_mt_grwl_t **)bst__, &min);
+            bst_mt_grwl_max((bst_mt_grwl_t **)bst__, &max);
+            bst_mt_grwl_height((bst_mt_grwl_t **)bst__, &height);
+            bst_mt_grwl_width((bst_mt_grwl_t **)bst__, &width);
+            bst_mt_grwl_free((bst_mt_grwl_t **)bst__);
             break;
         case LRWL:
-            bst_mt_lrwl_node_count(bst__, &nc);
-            bst_mt_lrwl_min(bst__, &min);
-            bst_mt_lrwl_max(bst__, &max);
-            bst_mt_lrwl_height(bst__, &height);
-            bst_mt_lrwl_width(bst__, &width);
-            bst_mt_lrwl_free(bst__);
+            bst_mt_lrwl_node_count((bst_mt_lrwl_t **)bst__, &nc);
+            bst_mt_lrwl_min((bst_mt_lrwl_t **)bst__, &min);
+            bst_mt_lrwl_max((bst_mt_lrwl_t **)bst__, &max);
+            bst_mt_lrwl_height((bst_mt_lrwl_t **)bst__, &height);
+            bst_mt_lrwl_width((bst_mt_lrwl_t **)bst__, &width);
+            bst_mt_lrwl_free((bst_mt_lrwl_t **)bst__);
             break;
         }
 
@@ -592,7 +595,7 @@ void bst_test(int64_t operations, size_t threads, enum bst_type bt,
     }
 }
 
-int main(int argc, char **argv) {
+int main(const int argc, char **argv) {
     int64_t operations = 0, threads = 1, repeat = 1;
     enum bst_type type = 0;
     enum test_strat strat = 0;
