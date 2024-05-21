@@ -1,0 +1,3 @@
+add_subdirectory(bst_st)
+add_subdirectory(bst_mt_grwl)
+add_subdirectory(bst_mt_lrwl)

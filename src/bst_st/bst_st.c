@@ -31,8 +31,8 @@ IN THE SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bst_common.h"
-#include "bst_st.h"
+#include "../include/bst_common.h"
+#include "include/bst_st.h"
 
 bst_st_node_t *bst_st_node_new(const int64_t value, BST_ERROR *err) {
     bst_st_node_t *node = malloc(sizeof(bst_st_node_t));

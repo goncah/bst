@@ -10,9 +10,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "bst_mt_grwl.h"
-#include "bst_mt_lrwl.h"
-#include "bst_st.h"
+#include "bst_mt_grwl/include/bst_mt_grwl.h"
+#include "bst_mt_lrwl/include/bst_mt_lrwl.h"
+#include "bst_st/include/bst_st.h"
 
 const char *usage() {
     const char *msg = "\

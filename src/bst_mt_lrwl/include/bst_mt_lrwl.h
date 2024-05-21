@@ -37,7 +37,7 @@ IN THE SOFTWARE.
 #include <pthread.h>
 #include <stdint.h>
 
-#include "bst_common.h"
+#include "../../include/bst_common.h"
 
 /**
  * Holds a tree node with pointer to both children nodes

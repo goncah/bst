@@ -32,8 +32,8 @@ IN THE SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bst_common.h"
-#include "bst_mt_grwl.h"
+#include "../include/bst_common.h"
+#include "include/bst_mt_grwl.h"
 
 bst_mt_grwl_node_t *bst_mt_grwl_node_new(const int64_t value, BST_ERROR *err) {
     bst_mt_grwl_node_t *node = malloc(sizeof(bst_mt_grwl_node_t));

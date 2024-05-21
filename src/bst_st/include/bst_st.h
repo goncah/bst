@@ -31,7 +31,7 @@ IN THE SOFTWARE.
 #define BST_ST_H_
 #include <stdint.h>
 
-#include "bst_common.h"
+#include "../../include/bst_common.h"
 
 /**
  * Holds a tree node with pointer to both children nodes
