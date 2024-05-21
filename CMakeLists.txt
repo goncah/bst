@@ -18,8 +18,12 @@ target_link_libraries(bst pthread bst_st bst_mt_grwl bst_mt_lrwl)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     install(TARGETS bst_st DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(DIRECTORY src/bst_st/include/ DESTINATION include/bst_t)
+
     install(TARGETS bst_mt_grwl DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(DIRECTORY src/bst_mt_grwl/include/ DESTINATION include/bst_mt_grwl)
+
     install(TARGETS bst_mt_lrwl DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    install(DIRECTORY src/include/ DESTINATION include/bst)
+    install(DIRECTORY src/bst_mt_lrwl/include/ DESTINATION include/bst_mt_lrwl)
     include(CPack)
 endif ()
