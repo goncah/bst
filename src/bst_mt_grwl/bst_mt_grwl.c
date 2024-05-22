@@ -27,13 +27,27 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
+#include <errno.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "../include/bst_common.h"
 #include "include/bst_mt_grwl.h"
+
+static int64_t compare(const int64_t a, const int64_t b) {
+    struct timespec ts = {0, COMPARE_SLEEP};
+    int res = 0;
+    errno = 0;
+
+    do {
+        res = nanosleep(&ts, &ts);
+    } while (res && errno == EINTR);
+
+    return a - b;
+}
 
 bst_mt_grwl_node_t *bst_mt_grwl_node_new(const int64_t value, BST_ERROR *err) {
     bst_mt_grwl_node_t *node = malloc(sizeof(bst_mt_grwl_node_t));
@@ -145,7 +159,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t **bst, const int64_t value) {
     bst_mt_grwl_node_t *root = bst_->root;
 
     while (root != NULL) {
-        if (value - root->value < 0) {
+        if (compare(value, root->value) < 0) {
             if (root->left == NULL) {
                 BST_ERROR err;
                 bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
@@ -169,7 +183,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t **bst, const int64_t value) {
             }
 
             root = root->left;
-        } else if (value - root->value > 0) {
+        } else if (compare(value, root->value) > 0) {
             if (root->right == NULL) {
                 BST_ERROR err;
                 bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
@@ -238,9 +252,9 @@ BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t **bst, const int64_t value) {
             }
 
             return VALUE_EXISTS;
-        } else if (value - root->value < 0) {
+        } else if (compare(value, root->value) < 0) {
             root = root->left;
-        } else if (value - root->value > 0) {
+        } else if (compare(value, root->value) > 0) {
             root = root->right;
         }
     }
@@ -708,7 +722,7 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t **bst, const int64_t value) {
 
     // Find the node
     while (current != NULL && current->value != value) {
-        if (value < current->value) {
+        if (compare(value, current->value) < 0) {
             parent = current;
             current = current->left;
         } else {

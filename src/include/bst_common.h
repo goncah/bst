@@ -68,4 +68,8 @@ typedef enum BST_ERROR {
 // clang-format on
 
 #define IS_SUCCESS(a) (((a) & SUCCESS) == SUCCESS ? 1 : 0)
+
+// To simulate more complex tree node value comparison, there is a sleep
+// implemented. Value is in nanoseconds.
+#define COMPARE_SLEEP 1
 #endif // BST_COMMON_H_
