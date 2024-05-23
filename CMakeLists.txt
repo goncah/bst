@@ -25,5 +25,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
 
     install(TARGETS bst_mt_lrwl DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(DIRECTORY src/bst_mt_lrwl/include/ DESTINATION include/bst_mt_lrwl)
+
     include(CPack)
 endif ()

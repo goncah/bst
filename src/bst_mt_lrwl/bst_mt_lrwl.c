@@ -32,27 +32,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
-#include <errno.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "../include/bst_common.h"
 #include "include/bst_mt_lrwl.h"
-
-static int64_t compare(const int64_t a, const int64_t b) {
-    struct timespec ts = {0, 10};
-    int res = 0;
-    errno = 0;
-
-    do {
-        res = nanosleep(&ts, &ts);
-    } while (res && errno == EINTR);
-
-    return a - b;
-}
 
 bst_mt_lrwl_node_t *bst_mt_lrwl_node_new(const int64_t value, BST_ERROR *err) {
     bst_mt_lrwl_node_t *node = malloc(sizeof(bst_mt_lrwl_node_t));
@@ -65,25 +51,7 @@ bst_mt_lrwl_node_t *bst_mt_lrwl_node_new(const int64_t value, BST_ERROR *err) {
         return NULL;
     }
 
-    pthread_rwlockattr_t rtx_attr;
-
-    if (pthread_rwlockattr_setkind_np(
-            &rtx_attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP)) {
-        free(node);
-        if (err != NULL) {
-            *err = PT_RWLOCK_ATTR_INIT_FAILURE;
-        }
-
-        return NULL;
-    }
-
-    if (pthread_rwlock_init(&node->rwl, &rtx_attr)) {
-        free(node);
-        if (err != NULL) {
-            *err = PT_RWLOCK_INIT_FAILURE;
-        }
-        return NULL;
-    }
+    pthread_rwlock_init(&node->rwl, NULL);
 
     node->value = value;
     node->left = NULL;
@@ -107,21 +75,8 @@ bst_mt_lrwl_t *bst_mt_lrwl_new(BST_ERROR *err) {
         return NULL;
     }
 
-    if (pthread_rwlock_init(&bst->rwl, NULL)) {
-        free(bst);
-        if (err != NULL) {
-            *err = PT_RWLOCK_INIT_FAILURE;
-        }
-        return NULL;
-    }
-
-    if (pthread_rwlock_init(&bst->crwl, NULL)) {
-        free(bst);
-        if (err != NULL) {
-            *err = PT_RWLOCK_INIT_FAILURE;
-        }
-        return NULL;
-    }
+    pthread_rwlock_init(&bst->rwl, NULL);
+    pthread_rwlock_init(&bst->crwl, NULL);
 
     bst->count = 0;
     bst->root = NULL;
@@ -135,146 +90,95 @@ BST_ERROR bst_mt_lrwl_add(bst_mt_lrwl_t **bst, const int64_t value) {
     }
 
     bst_mt_lrwl_t *bst_ = *bst;
-
+    pthread_rwlock_wrlock(&bst_->rwl);
     if (bst_->root == NULL) {
-        if (pthread_rwlock_wrlock(&bst_->rwl)) {
-            return PT_RWLOCK_LOCK_FAILURE;
-        }
+        bst_->root = malloc(sizeof(bst_mt_lrwl_node_t));
+        bst_->root->value = value;
+        bst_->root->left = bst_->root->right = NULL;
+        pthread_rwlock_init(&bst_->root->rwl, NULL);
+        pthread_rwlock_wrlock(&bst_->crwl);
+        bst_->count++;
+        pthread_rwlock_unlock(&bst_->crwl);
+        pthread_rwlock_unlock(&bst_->rwl);
+        return SUCCESS;
+    }
 
-        if (bst_->root == NULL) {
-            BST_ERROR err;
-            bst_mt_lrwl_node_t *node = bst_mt_lrwl_node_new(value, &err);
+    bst_mt_lrwl_node_t *current = bst_->root;
 
-            if (IS_SUCCESS(err)) {
-                bst_->root = node;
-                if (pthread_rwlock_wrlock(&bst_->crwl)) {
-                    if (pthread_rwlock_unlock(&bst_->rwl)) {
-                        return PT_RWLOCK_UNLOCK_FAILURE;
-                    }
-                    return PT_RWLOCK_LOCK_FAILURE;
-                }
+    pthread_rwlock_wrlock(&current->rwl);
+    pthread_rwlock_unlock(&bst_->rwl);
 
+    while (current != NULL) {
+        if (value < current->value) {
+            if (current->left == NULL) {
+                current->left =
+                    (bst_mt_lrwl_node_t *)malloc(sizeof(bst_mt_lrwl_node_t));
+                current->left->value = value;
+                current->left->left = current->left->right = NULL;
+                pthread_rwlock_init(&current->left->rwl, NULL);
+                pthread_rwlock_wrlock(&bst_->crwl);
                 bst_->count++;
-
-                if (pthread_rwlock_unlock(&bst_->crwl) ||
-                    pthread_rwlock_unlock(&bst_->rwl)) {
-                    return PT_RWLOCK_LOCK_FAILURE;
-                }
-
+                pthread_rwlock_unlock(&bst_->crwl);
+                pthread_rwlock_unlock(&current->rwl);
                 return SUCCESS;
             }
-        }
 
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED;
-        }
-    }
-
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
-
-    bst_mt_lrwl_node_t *root = bst_->root, *tmp;
-    while (root != NULL) {
-        if (pthread_rwlock_wrlock(&root->rwl)) {
-            return PT_RWLOCK_LOCK_FAILURE;
-        }
-
-        if (compare(value, root->value) < 0) {
-            if (root->left == NULL) {
-                BST_ERROR err;
-                bst_mt_lrwl_node_t *node = bst_mt_lrwl_node_new(value, &err);
-
-                if (IS_SUCCESS(err)) {
-                    root->left = node;
-
-                    if (pthread_rwlock_wrlock(&bst_->crwl)) {
-                        if (pthread_rwlock_unlock(&root->rwl) ||
-                            pthread_rwlock_unlock(&bst_->rwl)) {
-                            return PT_RWLOCK_UNLOCK_FAILURE;
-                        }
-                        return PT_RWLOCK_LOCK_FAILURE;
-                    }
-
-                    bst_->count++;
-
-                    if (pthread_rwlock_unlock(&root->rwl) ||
-                        pthread_rwlock_unlock(&bst_->crwl) ||
-                        pthread_rwlock_unlock(&bst_->rwl)) {
-                        return PT_RWLOCK_UNLOCK_FAILURE;
-                    }
-
-                    return SUCCESS;
-                }
-
-                if (pthread_rwlock_unlock(&root->rwl) ||
-                    pthread_rwlock_unlock(&bst_->rwl)) {
-                    return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED | err;
-                }
-
-                return VALUE_NOT_ADDED | err;
+            if (current->left) {
+                pthread_rwlock_wrlock(&current->left->rwl);
+            }
+            bst_mt_lrwl_node_t *t = current;
+            current = current->left;
+            pthread_rwlock_unlock(&t->rwl);
+        } else if (value > current->value) {
+            if (current->right == NULL) {
+                current->right =
+                    (bst_mt_lrwl_node_t *)malloc(sizeof(bst_mt_lrwl_node_t));
+                current->right->value = value;
+                current->right->left = current->right->right = NULL;
+                pthread_rwlock_init(&current->right->rwl, NULL);
+                pthread_rwlock_wrlock(&bst_->crwl);
+                bst_->count++;
+                pthread_rwlock_unlock(&bst_->crwl);
+                pthread_rwlock_unlock(&current->rwl);
+                return SUCCESS;
             }
 
-            tmp = root;
-            root = root->left;
-            if (pthread_rwlock_unlock(&tmp->rwl)) {
-                return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED;
-            }
-        } else if (compare(value, root->value) > 0) {
-            if (root->right == NULL) {
-                BST_ERROR err;
-                bst_mt_lrwl_node_t *node = bst_mt_lrwl_node_new(value, &err);
-
-                if (IS_SUCCESS(err)) {
-                    root->right = node;
-
-                    if (pthread_rwlock_wrlock(&bst_->crwl)) {
-                        if (pthread_rwlock_unlock(&root->rwl) ||
-                            pthread_rwlock_unlock(&bst_->rwl)) {
-                            return PT_RWLOCK_UNLOCK_FAILURE;
-                        }
-                        return PT_RWLOCK_LOCK_FAILURE;
-                    }
-
-                    bst_->count++;
-
-                    if (pthread_rwlock_unlock(&root->rwl) ||
-                        pthread_rwlock_unlock(&bst_->crwl) ||
-                        pthread_rwlock_unlock(&bst_->rwl)) {
-                        return PT_RWLOCK_UNLOCK_FAILURE;
-                    }
-
-                    return SUCCESS;
-                }
-
-                if (pthread_rwlock_unlock(&root->rwl) ||
-                    pthread_rwlock_unlock(&bst_->rwl)) {
-                    return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED | err;
-                }
-
-                return VALUE_NOT_ADDED | err;
+            if (current->right) {
+                pthread_rwlock_wrlock(&current->right->rwl);
             }
 
-            tmp = root;
-            root = root->right;
-            if (pthread_rwlock_unlock(&tmp->rwl)) {
-                return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED;
-            }
+            bst_mt_lrwl_node_t *t = current;
+            current = current->right;
+            pthread_rwlock_unlock(&t->rwl);
         } else {
-            if (pthread_rwlock_unlock(&root->rwl) ||
-                pthread_rwlock_unlock(&bst_->rwl)) {
-                return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NOT_ADDED;
-            }
-            return VALUE_EXISTS;
+            pthread_rwlock_unlock(&current->rwl);
+            return VALUE_EXISTS; // Value already exists in the tree
         }
     }
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | UNKNOWN;
+    return SUCCESS;
+}
+
+static int bst_mt_lrwl_find(bst_mt_lrwl_node_t *root, const int64_t value) {
+    if (compare(value, root->value) < 0) {
+        if (root->left == NULL) {
+            return 1;
+        }
+        pthread_rwlock_rdlock(&root->left->rwl);
+        const int r = bst_mt_lrwl_find(root->left, value);
+        pthread_rwlock_unlock(&root->left->rwl);
+        return r;
+    } else if (compare(value, root->value) > 0) {
+        if (root->right == NULL) {
+            return 1;
+        }
+        pthread_rwlock_rdlock(&root->right->rwl);
+        const int r = bst_mt_lrwl_find(root->right, value);
+        pthread_rwlock_unlock(&root->right->rwl);
+        return r;
     }
 
-    // Should never get here
-    return UNKNOWN;
+    return 0;
 }
 
 BST_ERROR bst_mt_lrwl_search(bst_mt_lrwl_t **bst, const int64_t value) {
@@ -284,60 +188,25 @@ BST_ERROR bst_mt_lrwl_search(bst_mt_lrwl_t **bst, const int64_t value) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
-    bst_mt_lrwl_node_t *root = bst_->root;
+    pthread_rwlock_rdlock(&bst_->root->rwl);
 
-    while (root != NULL) {
-        if (pthread_rwlock_rdlock(&root->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE;
-        }
-
-        if (root->value == value) {
-            if (pthread_rwlock_unlock(&root->rwl) ||
-                pthread_rwlock_unlock(&bst_->rwl)) {
-                return PT_RWLOCK_UNLOCK_FAILURE | VALUE_EXISTS;
-            }
-
-            return VALUE_EXISTS;
-        } else if (compare(value, root->value) < 0) {
-            bst_mt_lrwl_node_t *tmp = root;
-            root = root->left;
-
-            if (pthread_rwlock_unlock(&tmp->rwl)) {
-                if (pthread_rwlock_unlock(&bst_->rwl)) {
-                    return PT_RWLOCK_UNLOCK_FAILURE;
-                }
-                return PT_RWLOCK_UNLOCK_FAILURE;
-            }
-
-        } else if (compare(value, root->value) > 0) {
-            bst_mt_lrwl_node_t *tmp = root;
-            root = root->right;
-
-            if (pthread_rwlock_unlock(&tmp->rwl)) {
-                if (pthread_rwlock_unlock(&bst_->rwl)) {
-                    return PT_RWLOCK_UNLOCK_FAILURE;
-                }
-                return PT_RWLOCK_UNLOCK_FAILURE;
-            }
-        }
+    if (bst_mt_lrwl_find(bst_->root, value)) {
+        pthread_rwlock_unlock(&bst_->root->rwl);
+        pthread_rwlock_unlock(&bst_->rwl);
+        return VALUE_NONEXISTENT;
     }
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NONEXISTENT;
-    }
+    pthread_rwlock_unlock(&bst_->root->rwl);
+    pthread_rwlock_unlock(&bst_->rwl);
 
-    return VALUE_NONEXISTENT;
+    return SUCCESS;
 }
 
 BST_ERROR bst_mt_lrwl_min(bst_mt_lrwl_t **bst, int64_t *value) {
@@ -347,30 +216,30 @@ BST_ERROR bst_mt_lrwl_min(bst_mt_lrwl_t **bst, int64_t *value) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
-    const bst_mt_lrwl_node_t *root = bst_->root;
+    bst_mt_lrwl_node_t *root = bst_->root;
+
+    pthread_rwlock_rdlock(&root->rwl);
+    pthread_rwlock_unlock(&bst_->rwl);
 
     while (root->left != NULL) {
+        pthread_rwlock_rdlock(&root->left->rwl);
+        bst_mt_lrwl_node_t *t = root;
         root = root->left;
+        pthread_rwlock_unlock(&t->rwl);
     }
 
     if (value != NULL) {
         *value = root->value;
     }
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_unlock(&root->rwl);
 
     return SUCCESS;
 }
@@ -382,30 +251,30 @@ BST_ERROR bst_mt_lrwl_max(bst_mt_lrwl_t **bst, int64_t *value) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
-    const bst_mt_lrwl_node_t *root = bst_->root;
+    bst_mt_lrwl_node_t *root = bst_->root;
+
+    pthread_rwlock_rdlock(&root->rwl);
+    pthread_rwlock_unlock(&bst_->rwl);
 
     while (root->right != NULL) {
+        pthread_rwlock_rdlock(&root->right->rwl);
+        bst_mt_lrwl_node_t *t = root;
         root = root->right;
+        pthread_rwlock_unlock(&t->rwl);
     }
 
     if (value != NULL) {
         *value = root->value;
     }
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_unlock(&root->rwl);
 
     return SUCCESS;
 }
@@ -417,17 +286,13 @@ BST_ERROR bst_mt_lrwl_node_count(bst_mt_lrwl_t **bst, size_t *value) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->crwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->crwl);
 
     if (value != NULL) {
         *value = bst_->count;
     }
 
-    if (pthread_rwlock_unlock(&bst_->crwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE;
-    }
+    pthread_rwlock_unlock(&bst_->crwl);
 
     return SUCCESS;
 }
@@ -439,18 +304,14 @@ BST_ERROR bst_mt_lrwl_height(bst_mt_lrwl_t **bst, size_t *value) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
         if (value != NULL) {
             *value = 0;
         }
 
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
@@ -464,21 +325,11 @@ BST_ERROR bst_mt_lrwl_height(bst_mt_lrwl_t **bst, size_t *value) {
     const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
 
     if (!IS_SUCCESS(be)) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | be;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return be;
     }
 
     struct Stack *stack = malloc(sizeof *stack * bst_size);
-
-    if (stack == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
-        }
-
-        return MALLOC_FAILURE;
-    }
 
     size_t stack_size = 0;
 
@@ -515,9 +366,7 @@ BST_ERROR bst_mt_lrwl_height(bst_mt_lrwl_t **bst, size_t *value) {
         *value = max_depth;
     }
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_unlock(&bst_->rwl);
 
     return SUCCESS;
 }
@@ -529,18 +378,14 @@ BST_ERROR bst_mt_lrwl_width(bst_mt_lrwl_t **bst, size_t *value) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
         if (value != NULL) {
             *value = 0;
         }
 
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
@@ -549,18 +394,14 @@ BST_ERROR bst_mt_lrwl_width(bst_mt_lrwl_t **bst, size_t *value) {
     const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
 
     if (!IS_SUCCESS(be)) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | be;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return be;
     }
 
     bst_mt_lrwl_node_t **q = malloc(sizeof **q * bst_size);
 
     if (q == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
 
         return MALLOC_FAILURE;
     }
@@ -595,9 +436,7 @@ BST_ERROR bst_mt_lrwl_width(bst_mt_lrwl_t **bst, size_t *value) {
         *value = w;
     }
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_unlock(&bst_->rwl);
 
     return SUCCESS;
 }
@@ -609,14 +448,10 @@ BST_ERROR bst_mt_lrwl_traverse_preorder(bst_mt_lrwl_t **bst) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
@@ -624,9 +459,7 @@ BST_ERROR bst_mt_lrwl_traverse_preorder(bst_mt_lrwl_t **bst) {
     const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
 
     if (!IS_SUCCESS(be)) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | be;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return be;
     }
 
@@ -634,9 +467,7 @@ BST_ERROR bst_mt_lrwl_traverse_preorder(bst_mt_lrwl_t **bst) {
     bst_mt_lrwl_node_t **stack = malloc(sizeof **stack * bst_size);
 
     if (stack == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return MALLOC_FAILURE;
     }
 
@@ -662,9 +493,7 @@ BST_ERROR bst_mt_lrwl_traverse_preorder(bst_mt_lrwl_t **bst) {
 
     free(stack);
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_unlock(&bst_->rwl);
 
     return SUCCESS;
 }
@@ -676,14 +505,10 @@ BST_ERROR bst_mt_lrwl_traverse_inorder(bst_mt_lrwl_t **bst) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
@@ -691,18 +516,14 @@ BST_ERROR bst_mt_lrwl_traverse_inorder(bst_mt_lrwl_t **bst) {
     const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
 
     if (!IS_SUCCESS(be)) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | be;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return be;
     }
 
     // Stack to store the nodes
     bst_mt_lrwl_node_t **stack = malloc(sizeof **stack * bst_size);
     if (stack == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return MALLOC_FAILURE;
     }
 
@@ -731,9 +552,7 @@ BST_ERROR bst_mt_lrwl_traverse_inorder(bst_mt_lrwl_t **bst) {
 
     free(stack);
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_unlock(&bst_->rwl);
 
     return SUCCESS;
 }
@@ -745,14 +564,10 @@ BST_ERROR bst_mt_lrwl_traverse_postorder(bst_mt_lrwl_t **bst) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_rdlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_rdlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
@@ -760,26 +575,20 @@ BST_ERROR bst_mt_lrwl_traverse_postorder(bst_mt_lrwl_t **bst) {
     const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
 
     if (!IS_SUCCESS(be)) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | be;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return be;
     }
 
     // Stack to store the nodes
     bst_mt_lrwl_node_t **stack1 = malloc(sizeof **stack1 * bst_size);
     if (stack1 == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return MALLOC_FAILURE;
     }
 
     bst_mt_lrwl_node_t **stack2 = malloc(sizeof **stack2 * bst_size);
     if (stack2 == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return MALLOC_FAILURE;
     }
 
@@ -815,11 +624,74 @@ BST_ERROR bst_mt_lrwl_traverse_postorder(bst_mt_lrwl_t **bst) {
     free(stack1);
     free(stack2);
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_unlock(&bst_->rwl);
 
     return SUCCESS;
+}
+
+static bst_mt_lrwl_node_t *bst_mt_lrwl_find_min(bst_mt_lrwl_node_t *root) {
+    if (root == NULL)
+        return NULL;
+
+    pthread_rwlock_rdlock(&root->rwl);
+
+    bst_mt_lrwl_node_t *current = root;
+    while (current && current->left != NULL) {
+        bst_mt_lrwl_node_t *t = current;
+        current = current->left;
+        pthread_rwlock_rdlock(&current->rwl);
+        pthread_rwlock_unlock(&t->rwl);
+    }
+
+    pthread_rwlock_unlock(&current->rwl);
+    return current;
+}
+
+static bst_mt_lrwl_node_t *bst_mt_lrwl_del(bst_mt_lrwl_node_t *root,
+                                           const int64_t value) {
+    if (root == NULL)
+        return root;
+
+    pthread_rwlock_wrlock(&root->rwl);
+
+    if (compare(value, root->value) < 0) {
+        if (root->left != NULL) {
+            pthread_rwlock_wrlock(&root->left->rwl);
+        }
+
+        root->left = bst_mt_lrwl_del(root->left, value);
+        pthread_rwlock_unlock(&root->rwl);
+    } else if (value > root->value) {
+        if (root->right != NULL) {
+            pthread_rwlock_wrlock(&root->right->rwl);
+        }
+
+        root->right = bst_mt_lrwl_del(root->right, value);
+        pthread_rwlock_unlock(&root->rwl);
+    } else {
+        // Node with only one child or no child
+        if (root->left == NULL || root->right == NULL) {
+            bst_mt_lrwl_node_t *temp = root->left ? root->left : root->right;
+            pthread_rwlock_unlock(&root->rwl);  // Unlock the root
+            pthread_rwlock_destroy(&root->rwl); // Destroy the mutex
+            free(root);
+            return temp;
+        }
+
+        // Node with two children: get the inorder successor (smallest in the
+        // right subtree)
+        bst_mt_lrwl_node_t *temp = bst_mt_lrwl_find_min(root->right);
+
+        // Copy the inorder successor's content to this node
+        root->value = temp->value;
+
+        // Delete the inorder successor
+        pthread_rwlock_wrlock(&root->right->rwl);
+        root->right = bst_mt_lrwl_del(root->right, temp->value);
+        pthread_rwlock_unlock(&root->rwl);
+    }
+
+    return root;
 }
 
 BST_ERROR bst_mt_lrwl_delete(bst_mt_lrwl_t **bst, const int64_t value) {
@@ -829,73 +701,30 @@ BST_ERROR bst_mt_lrwl_delete(bst_mt_lrwl_t **bst, const int64_t value) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_wrlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_wrlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
-    bst_mt_lrwl_node_t *current = bst_->root, *parent = NULL;
+    if (bst_->root->value == value) {
+        bst_->root = bst_mt_lrwl_del(bst_->root, value);
 
-    // Find the node
-    while (current != NULL && current->value != value) {
-        if (compare(value, current->value) < 0) {
-            parent = current;
-            current = current->left;
-        } else {
-            parent = current;
-            current = current->right;
-        }
+        pthread_rwlock_wrlock(&bst_->crwl);
+        bst_->count--;
+        pthread_rwlock_unlock(&bst_->crwl);
+        pthread_rwlock_unlock(&bst_->rwl);
+        return SUCCESS;
     }
 
-    if (current == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | VALUE_NONEXISTENT;
-        }
+    pthread_rwlock_unlock(&bst_->rwl);
 
-        return VALUE_NONEXISTENT;
-    }
+    bst_mt_lrwl_del(bst_->root, value);
 
-    // Node with two children
-    if (current->left != NULL && current->right != NULL) {
-        bst_mt_lrwl_node_t *successor = current->right;
-        bst_mt_lrwl_node_t *successor_parent = current;
-
-        // Find in-order successor and its parent
-        while (successor->left != NULL) {
-            successor_parent = successor;
-            successor = successor->left;
-        }
-
-        // Replace current node's data with successor's data
-        current->value = successor->value;
-
-        // Move pointers to delete successor
-        current = successor;
-        parent = successor_parent;
-    }
-
-    // Node with one or zero children
-    bst_mt_lrwl_node_t *child =
-        current->left != NULL ? current->left : current->right;
-    if (parent == NULL) {
-        bst_->root = child; // Delete the root node
-    } else if (parent->left == current) {
-        parent->left = child;
-    } else {
-        parent->right = child;
-    }
-
-    free(current);
-
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-    }
+    pthread_rwlock_wrlock(&bst_->crwl);
+    bst_->count--;
+    pthread_rwlock_unlock(&bst_->crwl);
 
     return SUCCESS;
 }
@@ -986,14 +815,10 @@ BST_ERROR bst_mt_lrwl_rebalance(bst_mt_lrwl_t **bst) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_wrlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_wrlock(&bst_->rwl);
 
     if (bst_->root == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | BST_EMPTY;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return BST_EMPTY;
     }
 
@@ -1001,18 +826,14 @@ BST_ERROR bst_mt_lrwl_rebalance(bst_mt_lrwl_t **bst) {
     const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
 
     if (!IS_SUCCESS(be)) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | be;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return be;
     }
 
     int64_t *inorder = malloc(sizeof(int64_t) * bst_size);
 
     if (inorder == NULL) {
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
         return MALLOC_FAILURE;
     }
 
@@ -1028,9 +849,7 @@ BST_ERROR bst_mt_lrwl_rebalance(bst_mt_lrwl_t **bst) {
         free(inorder);
         bst_->root = node;
 
-        if (pthread_rwlock_unlock(&bst_->rwl)) {
-            return PT_RWLOCK_UNLOCK_FAILURE | SUCCESS;
-        }
+        pthread_rwlock_unlock(&bst_->rwl);
 
         return SUCCESS;
     }
@@ -1039,9 +858,7 @@ BST_ERROR bst_mt_lrwl_rebalance(bst_mt_lrwl_t **bst) {
 
     bst_->root = NULL;
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE | err;
-    }
+    pthread_rwlock_unlock(&bst_->rwl);
 
     return err;
 }
@@ -1053,23 +870,15 @@ BST_ERROR bst_mt_lrwl_free(bst_mt_lrwl_t **bst) {
 
     bst_mt_lrwl_t *bst_ = *bst;
 
-    if (pthread_rwlock_wrlock(&bst_->rwl)) {
-        return PT_RWLOCK_LOCK_FAILURE;
-    }
+    pthread_rwlock_wrlock(&bst_->rwl);
 
     *bst = NULL;
 
     bst_mt_lrwl_node_free(bst_->root);
     bst_->root = NULL;
 
-    if (pthread_rwlock_unlock(&bst_->rwl)) {
-        return PT_RWLOCK_UNLOCK_FAILURE;
-    }
-
-    if (pthread_rwlock_destroy(&bst_->rwl)) {
-        return PT_RWLOCK_DESTROY_FAILURE;
-    }
-
+    pthread_rwlock_unlock(&bst_->rwl);
+    pthread_rwlock_destroy(&bst_->rwl);
     free(bst_);
 
     bst = NULL;

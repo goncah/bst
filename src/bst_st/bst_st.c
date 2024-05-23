@@ -27,26 +27,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
-#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "../include/bst_common.h"
 #include "include/bst_st.h"
-
-static int64_t compare(const int64_t a, const int64_t b) {
-    struct timespec ts = {0, COMPARE_SLEEP};
-    int res = 0;
-    errno = 0;
-
-    do {
-        res = nanosleep(&ts, &ts);
-    } while (res && errno == EINTR);
-
-    return a - b;
-}
 
 bst_st_node_t *bst_st_node_new(const int64_t value, BST_ERROR *err) {
     bst_st_node_t *node = malloc(sizeof(bst_st_node_t));

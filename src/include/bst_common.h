@@ -69,7 +69,10 @@ typedef enum BST_ERROR {
 
 #define IS_SUCCESS(a) (((a) & SUCCESS) == SUCCESS ? 1 : 0)
 
-// To simulate more complex tree node value comparison, there is a sleep
-// implemented. Value is in nanoseconds.
-#define COMPARE_SLEEP 1
+// To simulate more complex tree node value comparison, there is a psuedosleep
+// implemented. Avoided using sleep or nanosleep to not have the thread hanging
+// after the sleep due to the kernel scheduler.
+#define COMPARE_INSTRUCTIONS 2500
+
+int64_t compare(int64_t a, int64_t b);
 #endif // BST_COMMON_H_

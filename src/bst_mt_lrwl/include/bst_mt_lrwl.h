@@ -54,13 +54,7 @@ typedef struct bst_mt_lrwl_node {
  */
 typedef struct bst_mt_lrwl {
     bst_mt_lrwl_node_t *root;
-    pthread_rwlock_t
-        rwl; // Inverted usage of the RwLock, this allows to have fine-grained
-             // locking on insert with local mutex and a read lock on the RwLock
-             // while all other operations that require no changes on the BST
-             // during execution will request a write lock. RwLock is configured
-             // to prefer write, otherwise, under heavy contention, only inserts
-             // are executed.
+    pthread_rwlock_t rwl;
     size_t count;
     pthread_rwlock_t crwl;
 } bst_mt_lrwl_t;
