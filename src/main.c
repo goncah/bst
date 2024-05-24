@@ -189,25 +189,25 @@ void set_st_functions(test_bst_s *t) {
 }
 
 void set_mt_gmtx_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_grwl_add;
-    t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_grwl_search;
-    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_min;
-    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_max;
-    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_height;
-    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_grwl_width;
-    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_grwl_delete;
-    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_grwl_rebalance;
+    t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_cgl_add;
+    t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_cgl_search;
+    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_min;
+    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_max;
+    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_height;
+    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_width;
+    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_cgl_delete;
+    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_cgl_rebalance;
 }
 
 void set_mt_lrwl_functions(test_bst_s *t) {
-    t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_lrwl_add;
-    t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_lrwl_search;
-    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_min;
-    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_max;
-    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_height;
-    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_lrwl_width;
-    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_lrwl_delete;
-    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_lrwl_rebalance;
+    t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_add;
+    t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_search;
+    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_min;
+    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_max;
+    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_height;
+    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_width;
+    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_delete;
+    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_fgl_rebalance;
 }
 
 void *bst_st_test_insert_thread(void *vargp) {
@@ -467,20 +467,20 @@ void bst_test(const int64_t operations, const size_t threads,
             }
             break;
         case CGL:
-            bst = bst_mt_grwl_new(NULL);
+            bst = bst_mt_cgl_new(NULL);
             bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_mt_grwl_add((bst_mt_grwl_t **)bst__, values[i]);
+                    bst_mt_cgl_add((bst_mt_cgl_t **)bst__, values[i]);
                 }
             }
             break;
         case FGL:
-            bst = bst_mt_lrwl_new(NULL);
+            bst = bst_mt_fgl_new(NULL);
             bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
-                    bst_mt_lrwl_add((bst_mt_lrwl_t **)bst__, values[i]);
+                    bst_mt_fgl_add((bst_mt_fgl_t **)bst__, values[i]);
                 }
             }
             break;
@@ -521,20 +521,20 @@ void bst_test(const int64_t operations, const size_t threads,
             bst_st_free((bst_st_t **)bst__);
             break;
         case CGL:
-            bst_mt_grwl_node_count((bst_mt_grwl_t **)bst__, &nc);
-            bst_mt_grwl_min((bst_mt_grwl_t **)bst__, &min);
-            bst_mt_grwl_max((bst_mt_grwl_t **)bst__, &max);
-            bst_mt_grwl_height((bst_mt_grwl_t **)bst__, &height);
-            bst_mt_grwl_width((bst_mt_grwl_t **)bst__, &width);
-            bst_mt_grwl_free((bst_mt_grwl_t **)bst__);
+            bst_mt_cgl_node_count((bst_mt_cgl_t **)bst__, &nc);
+            bst_mt_cgl_min((bst_mt_cgl_t **)bst__, &min);
+            bst_mt_cgl_max((bst_mt_cgl_t **)bst__, &max);
+            bst_mt_cgl_height((bst_mt_cgl_t **)bst__, &height);
+            bst_mt_cgl_width((bst_mt_cgl_t **)bst__, &width);
+            bst_mt_cgl_free((bst_mt_cgl_t **)bst__);
             break;
         case FGL:
-            bst_mt_lrwl_node_count((bst_mt_lrwl_t **)bst__, &nc);
-            bst_mt_lrwl_min((bst_mt_lrwl_t **)bst__, &min);
-            bst_mt_lrwl_max((bst_mt_lrwl_t **)bst__, &max);
-            bst_mt_lrwl_height((bst_mt_lrwl_t **)bst__, &height);
-            bst_mt_lrwl_width((bst_mt_lrwl_t **)bst__, &width);
-            bst_mt_lrwl_free((bst_mt_lrwl_t **)bst__);
+            bst_mt_fgl_node_count((bst_mt_fgl_t **)bst__, &nc);
+            bst_mt_fgl_min((bst_mt_fgl_t **)bst__, &min);
+            bst_mt_fgl_max((bst_mt_fgl_t **)bst__, &max);
+            bst_mt_fgl_height((bst_mt_fgl_t **)bst__, &height);
+            bst_mt_fgl_width((bst_mt_fgl_t **)bst__, &width);
+            bst_mt_fgl_free((bst_mt_fgl_t **)bst__);
             break;
         }
 

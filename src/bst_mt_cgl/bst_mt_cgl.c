@@ -35,8 +35,8 @@ IN THE SOFTWARE.
 #include "../include/bst_common.h"
 #include "include/bst_mt_cgl.h"
 
-bst_mt_grwl_node_t *bst_mt_grwl_node_new(const int64_t value, BST_ERROR *err) {
-    bst_mt_grwl_node_t *node = malloc(sizeof(bst_mt_grwl_node_t));
+bst_mt_cgl_node_t *bst_mt_grwl_node_new(const int64_t value, BST_ERROR *err) {
+    bst_mt_cgl_node_t *node = malloc(sizeof(bst_mt_cgl_node_t));
 
     if (node == NULL) {
         if (err != NULL) {
@@ -57,8 +57,8 @@ bst_mt_grwl_node_t *bst_mt_grwl_node_new(const int64_t value, BST_ERROR *err) {
     return node;
 }
 
-bst_mt_grwl_t *bst_mt_grwl_new(BST_ERROR *err) {
-    bst_mt_grwl_t *bst = malloc(sizeof(bst_mt_grwl_t));
+bst_mt_cgl_t *bst_mt_cgl_new(BST_ERROR *err) {
+    bst_mt_cgl_t *bst = malloc(sizeof(bst_mt_cgl_t));
 
     if (bst == NULL) {
         if (err != NULL) {
@@ -96,12 +96,12 @@ bst_mt_grwl_t *bst_mt_grwl_new(BST_ERROR *err) {
     return bst;
 }
 
-BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t **bst, const int64_t value) {
+BST_ERROR bst_mt_cgl_add(bst_mt_cgl_t **bst, const int64_t value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_wrlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -109,7 +109,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t **bst, const int64_t value) {
 
     if (bst_->root == NULL) {
         BST_ERROR err;
-        bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
+        bst_mt_cgl_node_t *node = bst_mt_grwl_node_new(value, &err);
 
         if ((err & SUCCESS) == SUCCESS) {
             bst_->root = node;
@@ -129,13 +129,13 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t **bst, const int64_t value) {
         return err;
     }
 
-    bst_mt_grwl_node_t *root = bst_->root;
+    bst_mt_cgl_node_t *root = bst_->root;
 
     while (root != NULL) {
         if (compare(value, root->value) < 0) {
             if (root->left == NULL) {
                 BST_ERROR err;
-                bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
+                bst_mt_cgl_node_t *node = bst_mt_grwl_node_new(value, &err);
 
                 if (IS_SUCCESS(err)) {
                     root->left = node;
@@ -159,7 +159,7 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t **bst, const int64_t value) {
         } else if (compare(value, root->value) > 0) {
             if (root->right == NULL) {
                 BST_ERROR err;
-                bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(value, &err);
+                bst_mt_cgl_node_t *node = bst_mt_grwl_node_new(value, &err);
 
                 if (IS_SUCCESS(err)) {
                     root->right = node;
@@ -198,12 +198,12 @@ BST_ERROR bst_mt_grwl_add(bst_mt_grwl_t **bst, const int64_t value) {
     return UNKNOWN;
 }
 
-BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t **bst, const int64_t value) {
+BST_ERROR bst_mt_cgl_search(bst_mt_cgl_t **bst, const int64_t value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -216,7 +216,7 @@ BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t **bst, const int64_t value) {
         return BST_EMPTY;
     }
 
-    const bst_mt_grwl_node_t *root = bst_->root;
+    const bst_mt_cgl_node_t *root = bst_->root;
 
     while (root != NULL) {
         if (root->value == value) {
@@ -239,12 +239,12 @@ BST_ERROR bst_mt_grwl_search(bst_mt_grwl_t **bst, const int64_t value) {
     return VALUE_NONEXISTENT;
 }
 
-BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t **bst, int64_t *value) {
+BST_ERROR bst_mt_cgl_min(bst_mt_cgl_t **bst, int64_t *value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -257,7 +257,7 @@ BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t **bst, int64_t *value) {
         return BST_EMPTY;
     }
 
-    const bst_mt_grwl_node_t *root = bst_->root;
+    const bst_mt_cgl_node_t *root = bst_->root;
 
     while (root->left != NULL) {
         root = root->left;
@@ -274,12 +274,12 @@ BST_ERROR bst_mt_grwl_min(bst_mt_grwl_t **bst, int64_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t **bst, int64_t *value) {
+BST_ERROR bst_mt_cgl_max(bst_mt_cgl_t **bst, int64_t *value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -292,7 +292,7 @@ BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t **bst, int64_t *value) {
         return BST_EMPTY;
     }
 
-    const bst_mt_grwl_node_t *root = bst_->root;
+    const bst_mt_cgl_node_t *root = bst_->root;
 
     while (root->right != NULL) {
         root = root->right;
@@ -309,12 +309,12 @@ BST_ERROR bst_mt_grwl_max(bst_mt_grwl_t **bst, int64_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_node_count(bst_mt_grwl_t **bst, size_t *value) {
+BST_ERROR bst_mt_cgl_node_count(bst_mt_cgl_t **bst, size_t *value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -331,12 +331,12 @@ BST_ERROR bst_mt_grwl_node_count(bst_mt_grwl_t **bst, size_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t **bst, size_t *value) {
+BST_ERROR bst_mt_cgl_height(bst_mt_cgl_t **bst, size_t *value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -353,7 +353,7 @@ BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t **bst, size_t *value) {
     // Stack for tree nodes to avoid recursion and allow easier concurrency
     // control
     struct stack {
-        bst_mt_grwl_node_t *node;
+        bst_mt_cgl_node_t *node;
         size_t depth;
     };
 
@@ -377,7 +377,7 @@ BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t **bst, size_t *value) {
     while (stack_size > 0) {
         // Pop the top element from stack
         const struct stack top = stack[--stack_size];
-        const bst_mt_grwl_node_t *current = top.node;
+        const bst_mt_cgl_node_t *current = top.node;
         const size_t current_depth = top.depth;
 
         // Update maximum depth found
@@ -409,12 +409,12 @@ BST_ERROR bst_mt_grwl_height(bst_mt_grwl_t **bst, size_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t **bst, size_t *value) {
+BST_ERROR bst_mt_cgl_width(bst_mt_cgl_t **bst, size_t *value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -429,7 +429,7 @@ BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t **bst, size_t *value) {
     }
 
     size_t w = 0;
-    bst_mt_grwl_node_t **q = malloc(sizeof **q * bst_->count);
+    bst_mt_cgl_node_t **q = malloc(sizeof **q * bst_->count);
 
     if (q == NULL) {
         if (pthread_rwlock_unlock(&bst_->rwl)) {
@@ -452,7 +452,7 @@ BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t **bst, size_t *value) {
 
         // Loop through each node on the current level and enqueue children.
         for (int i = 0; i < count; i++) {
-            const bst_mt_grwl_node_t *n = q[f++];
+            const bst_mt_cgl_node_t *n = q[f++];
             if (n->left != NULL) {
                 q[r++] = n->left;
             }
@@ -476,12 +476,12 @@ BST_ERROR bst_mt_grwl_width(bst_mt_grwl_t **bst, size_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t **bst) {
+BST_ERROR bst_mt_cgl_traverse_preorder(bst_mt_cgl_t **bst) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -496,7 +496,7 @@ BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t **bst) {
     }
 
     // Stack to store the nodes
-    bst_mt_grwl_node_t **stack = malloc(sizeof **stack * bst_->count);
+    bst_mt_cgl_node_t **stack = malloc(sizeof **stack * bst_->count);
     if (stack == NULL) {
         if (pthread_rwlock_unlock(&bst_->rwl)) {
             return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
@@ -509,7 +509,7 @@ BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t **bst) {
     stack[top++] = bst_->root;
 
     while (top > 0) {
-        const bst_mt_grwl_node_t *node = stack[--top];
+        const bst_mt_cgl_node_t *node = stack[--top];
         printf("%ld ", node->value);
 
         // Push right child first so that it is processed after the left child
@@ -534,12 +534,12 @@ BST_ERROR bst_mt_grwl_traverse_preorder(bst_mt_grwl_t **bst) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t **bst) {
+BST_ERROR bst_mt_cgl_traverse_inorder(bst_mt_cgl_t **bst) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -554,7 +554,7 @@ BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t **bst) {
     }
 
     // Stack to store the nodes
-    bst_mt_grwl_node_t **stack = malloc(sizeof **stack * bst_->count);
+    bst_mt_cgl_node_t **stack = malloc(sizeof **stack * bst_->count);
     if (stack == NULL) {
         if (pthread_rwlock_unlock(&bst_->rwl)) {
             return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
@@ -564,7 +564,7 @@ BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t **bst) {
     }
 
     int top = 0;
-    bst_mt_grwl_node_t *current = bst_->root;
+    bst_mt_cgl_node_t *current = bst_->root;
 
     while (current != NULL || top > 0) {
         // Reach the left most Node of the current Node
@@ -595,12 +595,12 @@ BST_ERROR bst_mt_grwl_traverse_inorder(bst_mt_grwl_t **bst) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t **bst) {
+BST_ERROR bst_mt_cgl_traverse_postorder(bst_mt_cgl_t **bst) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_rdlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -615,7 +615,7 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t **bst) {
     }
 
     // Stack to store the nodes
-    bst_mt_grwl_node_t **stack1 = malloc(sizeof **stack1 * bst_->count);
+    bst_mt_cgl_node_t **stack1 = malloc(sizeof **stack1 * bst_->count);
     if (stack1 == NULL) {
         if (pthread_rwlock_unlock(&bst_->rwl)) {
             return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
@@ -624,7 +624,7 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t **bst) {
         return MALLOC_FAILURE;
     }
 
-    bst_mt_grwl_node_t **stack2 = malloc(sizeof **stack2 * bst_->count);
+    bst_mt_cgl_node_t **stack2 = malloc(sizeof **stack2 * bst_->count);
     if (stack2 == NULL) {
         if (pthread_rwlock_unlock(&bst_->rwl)) {
             return PT_RWLOCK_UNLOCK_FAILURE | MALLOC_FAILURE;
@@ -636,7 +636,7 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t **bst) {
     int top1 = 0, top2 = 0;
 
     stack1[top1++] = bst_->root;
-    bst_mt_grwl_node_t *node;
+    bst_mt_cgl_node_t *node;
 
     // Run while first stack is not empty
     while (top1 > 0) {
@@ -672,12 +672,12 @@ BST_ERROR bst_mt_grwl_traverse_postorder(bst_mt_grwl_t **bst) {
     return SUCCESS;
 }
 
-BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t **bst, const int64_t value) {
+BST_ERROR bst_mt_cgl_delete(bst_mt_cgl_t **bst, const int64_t value) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_wrlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -691,7 +691,7 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t **bst, const int64_t value) {
         return BST_EMPTY;
     }
 
-    bst_mt_grwl_node_t *current = bst_->root, *parent = NULL;
+    bst_mt_cgl_node_t *current = bst_->root, *parent = NULL;
 
     // Find the node
     while (current != NULL && current->value != value) {
@@ -714,8 +714,8 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t **bst, const int64_t value) {
 
     // Node with two children
     if (current->left != NULL && current->right != NULL) {
-        bst_mt_grwl_node_t *successor = current->right;
-        bst_mt_grwl_node_t *successor_parent = current;
+        bst_mt_cgl_node_t *successor = current->right;
+        bst_mt_cgl_node_t *successor_parent = current;
 
         // Find in-order successor and its parent
         while (successor->left != NULL) {
@@ -732,7 +732,7 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t **bst, const int64_t value) {
     }
 
     // Node with one or zero children
-    bst_mt_grwl_node_t *child =
+    bst_mt_cgl_node_t *child =
         current->left != NULL ? current->left : current->right;
     if (parent == NULL) {
         bst_->root = child; // Delete the root node
@@ -753,7 +753,7 @@ BST_ERROR bst_mt_grwl_delete(bst_mt_grwl_t **bst, const int64_t value) {
     return SUCCESS;
 }
 
-void grwl_save_inorder(const bst_mt_grwl_node_t *node, int64_t *inorder,
+void grwl_save_inorder(const bst_mt_cgl_node_t *node, int64_t *inorder,
                        int64_t *index) {
     if (node == NULL)
         return;
@@ -762,7 +762,7 @@ void grwl_save_inorder(const bst_mt_grwl_node_t *node, int64_t *inorder,
     grwl_save_inorder(node->right, inorder, index);
 }
 
-void bst_mt_grwl_node_free(bst_mt_grwl_node_t *root) {
+void bst_mt_grwl_node_free(bst_mt_cgl_node_t *root) {
     if (root == NULL) {
         return;
     }
@@ -778,7 +778,7 @@ void bst_mt_grwl_node_free(bst_mt_grwl_node_t *root) {
     free(root);
 }
 
-bst_mt_grwl_node_t *grwl_array_to_bst(int64_t *arr, const int64_t start,
+bst_mt_cgl_node_t *grwl_array_to_bst(int64_t *arr, const int64_t start,
                                       const int64_t end, BST_ERROR *err) {
     if (start > end) {
         if (err != NULL) {
@@ -791,7 +791,7 @@ bst_mt_grwl_node_t *grwl_array_to_bst(int64_t *arr, const int64_t start,
 
     BST_ERROR e;
 
-    bst_mt_grwl_node_t *node = bst_mt_grwl_node_new(arr[mid], &e);
+    bst_mt_cgl_node_t *node = bst_mt_grwl_node_new(arr[mid], &e);
 
     if (IS_SUCCESS(e)) {
         node->left = grwl_array_to_bst(arr, start, mid - 1, &e);
@@ -831,12 +831,12 @@ bst_mt_grwl_node_t *grwl_array_to_bst(int64_t *arr, const int64_t start,
     return NULL;
 }
 
-BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t **bst) {
+BST_ERROR bst_mt_cgl_rebalance(bst_mt_cgl_t **bst) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_wrlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
@@ -894,12 +894,12 @@ BST_ERROR bst_mt_grwl_rebalance(bst_mt_grwl_t **bst) {
     return err;
 }
 
-BST_ERROR bst_mt_grwl_free(bst_mt_grwl_t **bst) {
+BST_ERROR bst_mt_cgl_free(bst_mt_cgl_t **bst) {
     if (bst == NULL || *bst == NULL) {
         return BST_NULL;
     }
 
-    bst_mt_grwl_t *bst_ = *bst;
+    bst_mt_cgl_t *bst_ = *bst;
 
     if (pthread_rwlock_wrlock(&bst_->rwl)) {
         return PT_RWLOCK_LOCK_FAILURE;
