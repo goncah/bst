@@ -1,14 +1,9 @@
 /*
 Universidade Aberta
-File: bst_mt_lrwl_t.c
+File: bst_mt_fgl.c
 Author: Hugo Gonçalves, 2100562
 
-MT Safe BST using a both a global and a local RwLock, the latter with write
-preference. This further improves the insert performance due to no global
-lock on insert. The global RwLock is used inverted meaning that insert
-operation will read lock it and all others will write lock it. The local
-RwLock is write locked when inserting and read locked on all
-other operations.
+MT Safe Fine-Grained Lock BST using pthreads Mutex.
 
 MIT License
 
@@ -38,7 +33,7 @@ IN THE SOFTWARE.
 #include <stdlib.h>
 
 #include "../include/bst_common.h"
-#include "include/bst_mt_lrwl.h"
+#include "include/bst_mt_fgl.h"
 
 bst_mt_lrwl_node_t *bst_mt_lrwl_node_new(const int64_t value, BST_ERROR *err) {
     bst_mt_lrwl_node_t *node = malloc(sizeof(bst_mt_lrwl_node_t));

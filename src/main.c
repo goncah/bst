@@ -10,8 +10,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "bst_mt_grwl/include/bst_mt_grwl.h"
-#include "bst_mt_lrwl/include/bst_mt_lrwl.h"
+#include "bst_mt_cgl/include/bst_mt_cgl.h"
+#include "bst_mt_fgl/include/bst_mt_fgl.h"
 #include "bst_st/include/bst_st.h"
 
 const char *usage() {
@@ -30,8 +30,8 @@ Options:\n\
 \t\tread       - Random search, min, max, height and width. -o sets the number of elements in the read.\n\
 \t\tread_write - Random inserts, deletes, search, min, max, height and width with random generated numbers.\n\
 \t-c Set the BST type to ST, can be set with -g and -l to test multiple BST types\n\
-\t-g Set the BST type to MT Global RwLock, can be set with -c and -l to test multiple BST types\n\
-\t-l Set the BST type to MT Local RwLock, can be set with -c and -g to test multiple BST types\n\
+\t-g Set the BST type to MT Coarse-Grained Lock, can be set with -c and -l to test multiple BST types\n\
+\t-l Set the BST type to MT Fine-Grained Lock, can be set with -c and -g to test multiple BST types\n\
     \n";
 
     return msg;
@@ -117,8 +117,8 @@ str2int_errno str2int(int64_t *out, const char *s) {
 
 enum bst_type {
     ST = (1u << 1),
-    GRWL = (1u << 2),
-    LRWL = (1u << 3),
+    CGL = (1u << 2),
+    FGL = (1u << 3),
 };
 
 enum test_strat {
@@ -393,10 +393,10 @@ void bst_test(const int64_t operations, const size_t threads,
     case ST:
         bst_type = "ST";
         break;
-    case GRWL:
+    case CGL:
         bst_type = "GRWL";
         break;
-    case LRWL:
+    case FGL:
         bst_type = "LRWL";
         break;
     }
@@ -435,10 +435,10 @@ void bst_test(const int64_t operations, const size_t threads,
         case ST:
             set_st_functions(t);
             break;
-        case GRWL:
+        case CGL:
             set_mt_gmtx_functions(t);
             break;
-        case LRWL:
+        case FGL:
             set_mt_lrwl_functions(t);
             break;
         }
@@ -466,7 +466,7 @@ void bst_test(const int64_t operations, const size_t threads,
                 }
             }
             break;
-        case GRWL:
+        case CGL:
             bst = bst_mt_grwl_new(NULL);
             bst__ = &bst;
             if (add_elements) {
@@ -475,7 +475,7 @@ void bst_test(const int64_t operations, const size_t threads,
                 }
             }
             break;
-        case LRWL:
+        case FGL:
             bst = bst_mt_lrwl_new(NULL);
             bst__ = &bst;
             if (add_elements) {
@@ -520,7 +520,7 @@ void bst_test(const int64_t operations, const size_t threads,
             bst_st_width((bst_st_t **)bst__, &width);
             bst_st_free((bst_st_t **)bst__);
             break;
-        case GRWL:
+        case CGL:
             bst_mt_grwl_node_count((bst_mt_grwl_t **)bst__, &nc);
             bst_mt_grwl_min((bst_mt_grwl_t **)bst__, &min);
             bst_mt_grwl_max((bst_mt_grwl_t **)bst__, &max);
@@ -528,7 +528,7 @@ void bst_test(const int64_t operations, const size_t threads,
             bst_mt_grwl_width((bst_mt_grwl_t **)bst__, &width);
             bst_mt_grwl_free((bst_mt_grwl_t **)bst__);
             break;
-        case LRWL:
+        case FGL:
             bst_mt_lrwl_node_count((bst_mt_lrwl_t **)bst__, &nc);
             bst_mt_lrwl_min((bst_mt_lrwl_t **)bst__, &min);
             bst_mt_lrwl_max((bst_mt_lrwl_t **)bst__, &max);
@@ -658,10 +658,10 @@ int main(const int argc, char **argv) {
 
             PANIC("Invalid value for option -s");
         case 'g':
-            type = type | GRWL;
+            type = type | CGL;
             break;
         case 'l':
-            type = type | LRWL;
+            type = type | FGL;
             break;
         case 'c':
             type = type | ST;
@@ -723,36 +723,36 @@ int main(const int argc, char **argv) {
         bst_test(operations, 1, ST, READ_WRITE, repeat, values);
     }
 
-    if ((type & GRWL) == GRWL && (strat & INSERT) == INSERT) {
-        bst_test(operations, threads, GRWL, INSERT, repeat, values);
+    if ((type & CGL) == CGL && (strat & INSERT) == INSERT) {
+        bst_test(operations, threads, CGL, INSERT, repeat, values);
     }
 
-    if ((type & GRWL) == GRWL && (strat & WRITE) == WRITE) {
-        bst_test(operations, threads, GRWL, WRITE, repeat, values);
+    if ((type & CGL) == CGL && (strat & WRITE) == WRITE) {
+        bst_test(operations, threads, CGL, WRITE, repeat, values);
     }
 
-    if ((type & GRWL) == GRWL && (strat & READ) == READ) {
-        bst_test(operations, threads, GRWL, READ, repeat, values);
+    if ((type & CGL) == CGL && (strat & READ) == READ) {
+        bst_test(operations, threads, CGL, READ, repeat, values);
     }
 
-    if ((type & GRWL) == GRWL && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, threads, GRWL, READ_WRITE, repeat, values);
+    if ((type & CGL) == CGL && (strat & READ_WRITE) == READ_WRITE) {
+        bst_test(operations, threads, CGL, READ_WRITE, repeat, values);
     }
 
-    if ((type & LRWL) == LRWL && (strat & INSERT) == INSERT) {
-        bst_test(operations, threads, LRWL, INSERT, repeat, values);
+    if ((type & FGL) == FGL && (strat & INSERT) == INSERT) {
+        bst_test(operations, threads, FGL, INSERT, repeat, values);
     }
 
-    if ((type & LRWL) == LRWL && (strat & WRITE) == WRITE) {
-        bst_test(operations, threads, LRWL, WRITE, repeat, values);
+    if ((type & FGL) == FGL && (strat & WRITE) == WRITE) {
+        bst_test(operations, threads, FGL, WRITE, repeat, values);
     }
 
-    if ((type & LRWL) == LRWL && (strat & READ) == READ) {
-        bst_test(operations, threads, LRWL, READ, repeat, values);
+    if ((type & FGL) == FGL && (strat & READ) == READ) {
+        bst_test(operations, threads, FGL, READ, repeat, values);
     }
 
-    if ((type & LRWL) == LRWL && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, threads, LRWL, READ_WRITE, repeat, values);
+    if ((type & FGL) == FGL && (strat & READ_WRITE) == READ_WRITE) {
+        bst_test(operations, threads, FGL, READ_WRITE, repeat, values);
     }
 
     free(values);

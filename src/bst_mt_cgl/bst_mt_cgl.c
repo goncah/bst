@@ -1,9 +1,9 @@
 /*
 Universidade Aberta
-File: bst_mt_grwl_t.c
+File: bst_mt_cgl.c
 Author: Hugo Gonçalves, 2100562
 
-MT Safe BST using a global RwLock with write preference.
+MT Safe Coarse-Grained Lock BST using pthreads RwLock.
 
 MIT License
 
@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 #include <stdlib.h>
 
 #include "../include/bst_common.h"
-#include "include/bst_mt_grwl.h"
+#include "include/bst_mt_cgl.h"
 
 bst_mt_grwl_node_t *bst_mt_grwl_node_new(const int64_t value, BST_ERROR *err) {
     bst_mt_grwl_node_t *node = malloc(sizeof(bst_mt_grwl_node_t));

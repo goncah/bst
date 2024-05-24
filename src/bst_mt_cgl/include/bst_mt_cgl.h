@@ -1,9 +1,9 @@
 /*
 Universidade Aberta
-File: bst_mt_grwl_t.h
+File: bst_mt_cgl.h
 Author: Hugo Gonçalves, 2100562
 
-MT Safe BST using a global RwLock with write preference.
+MT Safe Coarse-Grained Lock BST using pthreads RwLock.
 
 MIT License
 

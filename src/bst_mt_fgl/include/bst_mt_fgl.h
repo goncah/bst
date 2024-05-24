@@ -1,14 +1,9 @@
 /*
 Universidade Aberta
-File: bst_mt_lrwl_t.h
+File: bst_mt_fgl.h
 Author: Hugo Gonçalves, 2100562
 
-MT Safe BST using a both a global and a local RwLock, the latter with write
-preference. This further improves the insert performance due to no global
-lock on insert. The global RwLock is used inverted meaning that insert
-operation will read lock it and all other will write lock it. The local
-RwLock is write locked when inserting/deleting and read locked on all
-other operations.
+MT Safe Fine-Grained Lock BST using pthreads Mutex.
 
 MIT License
 
@@ -70,10 +65,7 @@ typedef struct bst_mt_lrwl {
  *
  * MALLOC_FAILURE - malloc() failed to allocate memory for the BST
  *
- * PT_RWLOCK_ATTR_INIT_FAILURE - Failed to init the RwLock Attributes.
- *      BST is freed.
  *
- * PT_RWLOCK_INIT_FAILURE - Failed to init the RwLock, BST is freed.
  * @param err NULL (no effect) or allocated pointer to store any errors
  * @return NULL or BST
  */
@@ -88,16 +80,6 @@ bst_mt_lrwl_t *bst_mt_lrwl_new(BST_ERROR *err);
  * SUCCESS                       - Value added.
  *
  * BST_NULL                      - when provided bst pointer is null.
- *
- * PT_RWLOCK_READ_LOCK_FAILURE   - when failed to lock global RwLock. No changes
- *  to bst are performed.
- *
- * PT_RWLOCK_READ_LOCK_FAILURE   - when failed to lock a global RwLock, no
- *  changes to the BST.
- *
- * PT_RWLOCK_READ_UNLOCK_FAILURE - when failed to unlock a global RwLock. Always
- *  paired with either VALUE_ADDED or VALUE_NOT_ADDED. Additionally paired with
- *  MALLOC_FAILURE, in this case, no changes to the BST.
  *
  * MALLOC_FAILURE                - when malloc fails to allocate memory for a
  *  new tree node.
@@ -119,11 +101,6 @@ BST_ERROR bst_mt_lrwl_add(bst_mt_lrwl_t **bst, int64_t value);
  *
  * BST_EMPTY                - when provided bst is empty.
  *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
- *  paired with BST_EMPTY VALUE_EXISTS or VALUE_NONEXISTENT.
- *
  * VALUE_EXISTS             - value exists in the BST.
  *
  * VALUE_NONEXISTENT        - value does not exist in the BST.
@@ -141,13 +118,6 @@ BST_ERROR bst_mt_lrwl_search(bst_mt_lrwl_t **bst, int64_t value);
  *
  * BST_EMPTY                - when provided bst is empty.
  *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
- *  not written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
- *  paired with BST_EMPTY or SUCCESS. If paired with success, min is stored in
- *  value, if value is not NULL.
- *
  * SUCCESS                  - min is stored in value, if value is not NULL
  */
 BST_ERROR bst_mt_lrwl_min(bst_mt_lrwl_t **bst, int64_t *value);
@@ -162,13 +132,6 @@ BST_ERROR bst_mt_lrwl_min(bst_mt_lrwl_t **bst, int64_t *value);
  * BST_NULL                 - when provided bst pointer is null.
  *
  * BST_EMPTY                - when provided bst is empty.
- *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value
- *  is not written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
- *  paired with BST_EMPTY or SUCCESS. If paired with success, max is stored in
- *  value, if value is not NULL
  *
  * SUCCESS                  - max is stored in value, if value is not NULL
  */
@@ -189,13 +152,6 @@ BST_ERROR bst_mt_lrwl_max(bst_mt_lrwl_t **bst, int64_t *value);
  * MALLOC_FAILURE           - when the stack used to traverse the tree fails to
  *  allocate, value is not written.
  *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global RwLock, value is
- *  not written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
- *  paired with SUCCESS, MALLOC_FAILURE or BST_EMPTY. If paired with SUCCESS,
- *  node count is stored in value, if value is not NULL.
- *
  * SUCCESS                  - node count is stored in value, if value is not
  *  NULL.
  */
@@ -212,16 +168,6 @@ BST_ERROR bst_mt_lrwl_node_count(bst_mt_lrwl_t **bst, size_t *value);
  *
  * BST_EMPTY                - when provided bst is empty.
  *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global mutex, value is
- *  not written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
- *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with SUCCESS,
- *  value is still written. If paired with MALLOC_FAILURE or BST_EMPTY value is
- *  not written. When paired with MALLOC_FAILURE, it means that a queue used to
- *  traverse the tree failed to be allocated. If paired with success, height is
- *  stored in value, if value not NULL.
- *
  * SUCCESS                  - height is stored in value, if value not NULL.
  */
 BST_ERROR bst_mt_lrwl_height(bst_mt_lrwl_t **bst, size_t *value);
@@ -236,16 +182,6 @@ BST_ERROR bst_mt_lrwl_height(bst_mt_lrwl_t **bst, size_t *value);
  * BST_NULL                 - when provided bst pointer is null.
  *
  * BST_EMPTY                - when provided bst is empty.
- *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global mutex, value is not
- *  written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global RwLock, can be
- * paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with SUCCESS,
- * value is still written. If paired with MALLOC_FAILURE or BST_EMPTY value is
- * not written. When paired with MALLOC_FAILURE, it means that a queue used to
- * traverse the tree failed to be allocated. If paired with success, width is
- * stored in value, if value not NULL.
  *
  * SUCCESS                  - width is stored in value, if value
  *                            not NULL.
@@ -262,15 +198,6 @@ BST_ERROR bst_mt_lrwl_width(bst_mt_lrwl_t **bst, size_t *value);
  *
  * BST_EMPTY                - when provided bst is empty.
  *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global Rwlock, elements
- *  are not written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global Rwlock, can be
- *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with
- *  MALLOC_FAILURE or BST_EMPTY elements are not written. When paired with
- *  MALLOC_FAILURE, it means that the queue used to traverse the tree failed to
- *  be allocated. If paired with success, elements are written to stdout in
- *   preorder.
  *
  * SUCCESS                  - elements written to stdout in preorder.
  */
@@ -286,16 +213,6 @@ BST_ERROR bst_mt_lrwl_traverse_preorder(bst_mt_lrwl_t **bst);
  *
  * BST_EMPTY                - when provided bst is empty.
  *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global Rwlock, elements
- *  are not written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global Rwlock, can be
- *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with
- *  MALLOC_FAILURE or BST_EMPTY elements are not written. When paired with
- *  MALLOC_FAILURE, it means that the queue used to traverse the tree failed to
- *  be allocated. If paired with success, elements are written to stdout in
- *  inorder.
- *
  * SUCCESS                  - elements written to stdout in inorder.
  */
 BST_ERROR bst_mt_lrwl_traverse_inorder(bst_mt_lrwl_t **bst);
@@ -309,16 +226,6 @@ BST_ERROR bst_mt_lrwl_traverse_inorder(bst_mt_lrwl_t **bst);
  * BST_NULL                 - when provided bst pointer is null.
  *
  * BST_EMPTY                - when provided bst is empty.
- *
- * PT_RWLOCK_LOCK_FAILURE   - when failed to lock the global Rwlock, elements
- *  are not written.
- *
- * PT_RWLOCK_UNLOCK_FAILURE - when failed to unlock the global Rwlock, can be
- *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS. If paired with
- *  MALLOC_FAILURE or BST_EMPTY elements are not written. When paired with
- *  MALLOC_FAILURE, it means that the queue used to traverse the tree failed to
- *  be allocated. If paired with success, elements are written to stdout in
- *  postorder.
  *
  * SUCCESS                  - elements written to stdout in postorder.
  */
@@ -334,13 +241,6 @@ BST_ERROR bst_mt_lrwl_traverse_postorder(bst_mt_lrwl_t **bst);
  * BST_NULL               - when provided bst pointer is null.
  *
  * BST_EMPTY              - when provided bst is empty.
- *
- * PT_RWLOCK_LOCK_FAILURE - when failed to lock the global RwLock, value is not
- *  deleted.
- *
- * PT_RWLOCK_LOCK_FAILURE - when failed to unlock the global RwLock, can be
- *  paired with BST_EMPTY, VALUE_NONEXISTENT or SUCCESS. If paired with SUCCESS,
- *  value is still removed.
  *
  * VALUE_NONEXISTENT       - value not found.
  *
@@ -361,16 +261,6 @@ BST_ERROR bst_mt_lrwl_delete(bst_mt_lrwl_t **bst, int64_t value);
  *  allocating the array to store values during rebalance or when creating a new
  *  node. BST and all nodes are freed.
  *
- * PT_RWLOCK_LOCK_FAILURE    - when failed to lock the global RwLock, value is
- *  not written. No changes to the BST.
- *
- * PT_RWLOCK_UNLOCK_FAILURE  - when failed to unlock the global RwLock, can be
- *  paired with BST_EMPTY, MALLOC_FAILURE or SUCCESS.
- *
- * PT_RWLOCK_DESTROY_FAILURE - when failed to destroy the bst global RwLock. Can
- *  be paired with MALLOC_FAILURE or PT_RWLOCK_UNLOCK_FAILURE. In both cases
- *  BST and all nodes are freed.
- *
  * SUCCESS                   - BST rebalanced.
  */
 BST_ERROR bst_mt_lrwl_rebalance(bst_mt_lrwl_t **bst);
@@ -381,15 +271,6 @@ BST_ERROR bst_mt_lrwl_rebalance(bst_mt_lrwl_t **bst);
  * @param bst the bst to free.
  * @return
  * BST_NULL                  - when provided bst pointer is null.
- *
- * PT_RWLOCK_LOCK_FAILURE    - when failed to lock the global RwLock, no changes
- *  to the BST.
- *
- * PT_RWLOCK_UNLOCK_FAILURE  - when failed to unlock the global RwLock, all
- *  nodes are freed but the BST is not.
- *
- * PT_RWLOCK_DESTROY_FAILURE - when failed to destroy the global RwLock, all
- *  nodes are freed but the BST is not.
  *
  * SUCCESS                   - bst and all nodes freed.
  */
