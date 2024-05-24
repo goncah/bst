@@ -297,146 +297,74 @@ BST_ERROR bst_mt_lrwl_node_count(bst_mt_lrwl_t **bst, size_t *value) {
     return SUCCESS;
 }
 
+static size_t bst_mt_lrwl_find_height(bst_mt_lrwl_node_t *node) {
+    if (node == NULL) {
+        return 0;
+    }
+
+    pthread_rwlock_rdlock(&node->rwl);
+    const size_t left_height = bst_mt_lrwl_find_height(node->left);
+    const size_t right_height = bst_mt_lrwl_find_height(node->right);
+    pthread_rwlock_unlock(&node->rwl);
+
+    return (left_height > right_height ? left_height : right_height) + 1;
+}
+
 BST_ERROR bst_mt_lrwl_height(bst_mt_lrwl_t **bst, size_t *value) {
-    if (bst == NULL || *bst == NULL) {
-        return BST_NULL;
+    if (bst == NULL || *bst == NULL || (*bst)->root == NULL) {
+        return BST_NULL | BST_EMPTY;
     }
 
     bst_mt_lrwl_t *bst_ = *bst;
 
     pthread_rwlock_rdlock(&bst_->rwl);
-
-    if (bst_->root == NULL) {
-        if (value != NULL) {
-            *value = 0;
-        }
-
-        pthread_rwlock_unlock(&bst_->rwl);
-        return BST_EMPTY;
-    }
-
-    // Stack for tree nodes to avoid recursion allowing easier concurrency
-    // control
-    struct Stack {
-        bst_mt_lrwl_node_t *node;
-        size_t depth;
-    };
-    size_t bst_size = 0;
-    const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
-
-    if (!IS_SUCCESS(be)) {
-        pthread_rwlock_unlock(&bst_->rwl);
-        return be;
-    }
-
-    struct Stack *stack = malloc(sizeof *stack * bst_size);
-
-    size_t stack_size = 0;
-
-    // Initial push of the root node with depth 0
-    stack[stack_size++] = (struct Stack){bst_->root, 0};
-
-    size_t max_depth = 0;
-
-    while (stack_size > 0) {
-        // Pop the top element from stack
-        const struct Stack top = stack[--stack_size];
-        const bst_mt_lrwl_node_t *current = top.node;
-        const size_t current_depth = top.depth;
-
-        // Update maximum depth found
-        if (current_depth >= max_depth) {
-            max_depth = current_depth;
-        }
-
-        // Push children to the stack with incremented depth
-        if (current != NULL && current->right != NULL) {
-            stack[stack_size++] =
-                (struct Stack){current->right, current_depth + 1};
-        }
-        if (current != NULL && current->left != NULL) {
-            stack[stack_size++] =
-                (struct Stack){current->left, current_depth + 1};
-        }
-    }
-
-    free(stack);
-
-    if (value != NULL) {
-        *value = max_depth;
-    }
-
+    const size_t height = bst_mt_lrwl_find_height(bst_->root);
+    if (value)
+        *value = height;
     pthread_rwlock_unlock(&bst_->rwl);
 
     return SUCCESS;
 }
 
+static void bst_mt_lrwl_find_width(bst_mt_lrwl_node_t *node, size_t level,
+                            size_t *width) {
+    if (node == NULL) {
+        return;
+    }
+
+    pthread_rwlock_rdlock(&node->rwl);
+    width[level]++;
+    bst_mt_lrwl_find_width(node->left, level + 1, width);
+    bst_mt_lrwl_find_width(node->right, level + 1, width);
+    pthread_rwlock_unlock(&node->rwl);
+}
+
 BST_ERROR bst_mt_lrwl_width(bst_mt_lrwl_t **bst, size_t *value) {
-    if (bst == NULL || *bst == NULL) {
-        return BST_NULL;
+    if (bst == NULL || *bst == NULL || (*bst)->root == NULL) {
+        return BST_NULL | BST_EMPTY;
     }
 
     bst_mt_lrwl_t *bst_ = *bst;
 
     pthread_rwlock_rdlock(&bst_->rwl);
+    size_t height = bst_mt_lrwl_find_height(bst_->root);
+    size_t *width = calloc(height, sizeof(size_t));
 
-    if (bst_->root == NULL) {
-        if (value != NULL) {
-            *value = 0;
-        }
+    bst_mt_lrwl_find_width(bst_->root, 0, width);
 
-        pthread_rwlock_unlock(&bst_->rwl);
-        return BST_EMPTY;
-    }
-
-    int64_t w = 0;
-    size_t bst_size = 0;
-    const BST_ERROR be = bst_mt_lrwl_node_count(bst, &bst_size);
-
-    if (!IS_SUCCESS(be)) {
-        pthread_rwlock_unlock(&bst_->rwl);
-        return be;
-    }
-
-    bst_mt_lrwl_node_t **q = malloc(sizeof **q * bst_size);
-
-    if (q == NULL) {
-        pthread_rwlock_unlock(&bst_->rwl);
-
-        return MALLOC_FAILURE;
-    }
-
-    int64_t f = 0, r = 0;
-
-    q[r++] = bst_->root;
-
-    while (f < r) {
-        // Compute the number of nodes at the current level.
-        const int64_t count = r - f;
-
-        // Update the maximum width if the current level's width is greater.
-        w = w > count ? w : count;
-
-        // Loop through each node on the current level and enqueue children.
-        for (int i = 0; i < count; i++) {
-            const bst_mt_lrwl_node_t *n = q[f++];
-            if (n->left != NULL) {
-                q[r++] = n->left;
-            }
-
-            if (n->right != NULL) {
-                q[r++] = n->right;
-            }
+    size_t max_width = 0;
+    for (size_t i = 0; i < height; ++i) {
+        if (width[i] > max_width) {
+            max_width = width[i];
         }
     }
 
-    free(q);
-
-    if (value != NULL) {
-        *value = w;
-    }
-
+    free(width);
     pthread_rwlock_unlock(&bst_->rwl);
+
+    if (value) {
+        *value = max_width;
+    }
 
     return SUCCESS;
 }
@@ -652,22 +580,22 @@ static bst_mt_lrwl_node_t *bst_mt_lrwl_del(bst_mt_lrwl_node_t *root,
     if (root == NULL)
         return root;
 
-    pthread_rwlock_wrlock(&root->rwl);
-
     if (compare(value, root->value) < 0) {
         if (root->left != NULL) {
             pthread_rwlock_wrlock(&root->left->rwl);
+            root->left = bst_mt_lrwl_del(root->left, value);
+            pthread_rwlock_unlock(&root->rwl);
+        } else {
+            pthread_rwlock_unlock(&root->rwl);
         }
-
-        root->left = bst_mt_lrwl_del(root->left, value);
-        pthread_rwlock_unlock(&root->rwl);
     } else if (value > root->value) {
         if (root->right != NULL) {
             pthread_rwlock_wrlock(&root->right->rwl);
+            root->right = bst_mt_lrwl_del(root->right, value);
+            pthread_rwlock_unlock(&root->rwl);
+        } else {
+            pthread_rwlock_unlock(&root->rwl);
         }
-
-        root->right = bst_mt_lrwl_del(root->right, value);
-        pthread_rwlock_unlock(&root->rwl);
     } else {
         // Node with only one child or no child
         if (root->left == NULL || root->right == NULL) {
@@ -678,16 +606,17 @@ static bst_mt_lrwl_node_t *bst_mt_lrwl_del(bst_mt_lrwl_node_t *root,
             return temp;
         }
 
-        // Node with two children: get the inorder successor (smallest in the
-        // right subtree)
+        // Node with two children: get the inorder successor
         bst_mt_lrwl_node_t *temp = bst_mt_lrwl_find_min(root->right);
 
         // Copy the inorder successor's content to this node
         root->value = temp->value;
 
         // Delete the inorder successor
-        pthread_rwlock_wrlock(&root->right->rwl);
-        root->right = bst_mt_lrwl_del(root->right, temp->value);
+        if (root->right != NULL) {
+            pthread_rwlock_wrlock(&root->right->rwl);
+            root->right = bst_mt_lrwl_del(root->right, temp->value);
+        }
         pthread_rwlock_unlock(&root->rwl);
     }
 
@@ -709,6 +638,7 @@ BST_ERROR bst_mt_lrwl_delete(bst_mt_lrwl_t **bst, const int64_t value) {
     }
 
     if (bst_->root->value == value) {
+        pthread_rwlock_wrlock(&bst_->root->rwl);
         bst_->root = bst_mt_lrwl_del(bst_->root, value);
 
         pthread_rwlock_wrlock(&bst_->crwl);
@@ -718,8 +648,8 @@ BST_ERROR bst_mt_lrwl_delete(bst_mt_lrwl_t **bst, const int64_t value) {
         return SUCCESS;
     }
 
+    pthread_rwlock_wrlock(&bst_->root->rwl);
     pthread_rwlock_unlock(&bst_->rwl);
-
     bst_mt_lrwl_del(bst_->root, value);
 
     pthread_rwlock_wrlock(&bst_->crwl);
