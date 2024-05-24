@@ -46,7 +46,7 @@ typedef struct bst_mt_lrwl_node {
     int64_t value;
     struct bst_mt_lrwl_node *left;
     struct bst_mt_lrwl_node *right;
-    pthread_rwlock_t rwl;
+    pthread_mutex_t rwl;
 } bst_mt_lrwl_node_t;
 
 /**
@@ -54,9 +54,9 @@ typedef struct bst_mt_lrwl_node {
  */
 typedef struct bst_mt_lrwl {
     bst_mt_lrwl_node_t *root;
-    pthread_rwlock_t rwl;
+    pthread_mutex_t rwl;
     size_t count;
-    pthread_rwlock_t crwl;
+    pthread_mutex_t crwl;
 } bst_mt_lrwl_t;
 
 // Prototypes

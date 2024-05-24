@@ -4,7 +4,7 @@ project(bst VERSION 0.0.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Wall -Werror -Ofast")
+set(CMAKE_C_FLAGS_RELEASE "-O1 -Wall -Werror") # remove default -O3 which slows down LRWL version
 set(CPACK_PACKAGE_CONTACT "hfdsgoncalves@gmail.com")
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -17,6 +17,9 @@ add_executable(bst src/main.c)
 target_link_libraries(bst pthread bst_st bst_mt_grwl bst_mt_lrwl)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    install(TARGETS bst_common DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(DIRECTORY src/bst_common/include/ DESTINATION include/bst_common)
+
     install(TARGETS bst_st DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(DIRECTORY src/bst_st/include/ DESTINATION include/bst_t)
 
