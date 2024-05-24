@@ -5,5 +5,4 @@ cmake --build out --target all
 valgrind --tool=helgrind \
          --verbose \
          --log-file=out/helgrind-out.txt \
-         ./out/bst -o 10000 -g -l -s write -r 1 -t 8
-         #./out/bst -o 1000 -c -g -l -s insert -s write -s read -s read_write -r 1 -t 4
+         ./out/bst -o 1000 -c -g -l -s insert -s write -s read -s read_write -r 1 -t 4

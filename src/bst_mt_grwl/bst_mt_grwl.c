@@ -76,20 +76,7 @@ bst_mt_grwl_t *bst_mt_grwl_new(BST_ERROR *err) {
         return NULL;
     }
 
-    pthread_rwlockattr_t rtx_attr;
-
-    if (pthread_rwlockattr_setkind_np(
-            &rtx_attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP)) {
-        free(bst);
-
-        if (err != NULL) {
-            *err = PT_RWLOCK_ATTR_INIT_FAILURE;
-        }
-
-        return NULL;
-    }
-
-    if (pthread_rwlock_init(&bst->rwl, &rtx_attr)) {
+    if (pthread_rwlock_init(&bst->rwl, NULL)) {
         free(bst);
 
         if (err != NULL) {
