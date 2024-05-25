@@ -28,7 +28,10 @@ $ bst < options >
 
 Options:
 
--o Set the number of operations
+-n Set the number of operations
+
+-o Set write probability over read operations. Ex: 60 for 60% inserts
+   This option is ignored for insert, write and read strategies.
 
 -t Set the number of threads, operations are evenly distributed. Ignored for BST ST type.
 

@@ -20,7 +20,9 @@ Usage:\n\
     $ bst <options>\n\
 \n\
 Options:\n\
-\t-o Set the number of operations\n\
+\t-n Set the number of operations\n\
+\t-o Set write probability over read operations. Ex 60 for 60% inserts\n\
+\t\tThis option is ignored for insert, write and read strategies.\n\
 \t-t Set the number of threads, operations are evenly distributed. Ignored for BST ST type.\n\
 \t-r Set the number of test repetitions, applies to each strat and each BST type\n\
 \t-s <strategy> Set the test strategy. Multiple strategies can be set, example -s 1 -s 2 -s 3. Available strategies are:\n\
@@ -166,6 +168,7 @@ typedef struct test_bst_s {
     size_t start;
     int64_t *values;
     test_bst_metrics *metrics;
+    float write_prob;
     void *bst;
     BST_ERROR (*add)(const void **, int64_t);
     BST_ERROR (*search)(const void **, int64_t);
@@ -323,58 +326,78 @@ void *bst_st_test_read_write_thread(void *vargp) {
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (size_t i = 0; i < operations; i++) {
+
+        const int prob = data->write_prob == 0     ? 0
+                         : data->write_prob == 1 ? 1
+                         : rand_r(&seed) < (int)(data->write_prob * RAND_MAX)
+                             ? 1
+                             : 0;
+
         const int op = i < 3 ? 0 : rand_r(&seed) % 7;
 
-        if (op == 0) {
-            if ((data->add((const void **)&data->bst, values[start + i]) &
-                 SUCCESS) != SUCCESS) {
-                PANIC("Failed to add element");
+        if (prob) {
+            if (op == 0) {
+                if ((data->add((const void **)&data->bst, values[start + i]) &
+                     SUCCESS) != SUCCESS) {
+                    PANIC("Failed to add element");
+                }
+                metrics->inserts++;
+            } else {
+                const BST_ERROR be =
+                    data->delete ((const void **)&data->bst,
+                                  values[start + rand_r(&seed) % i]);
+                if ((be & SUCCESS) != SUCCESS &&
+                    (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
+                    (be & BST_EMPTY) != BST_EMPTY) {
+                    PANIC("Failed to delete element");
+                }
+                metrics->deletes++;
             }
-            metrics->inserts++;
-        } else if (op == 1) {
-            const BST_ERROR be = data->delete (
-                (const void **)&data->bst, values[start + rand_r(&seed) % i]);
-            if ((be & SUCCESS) != SUCCESS &&
-                (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT &&
-                (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to delete element");
-            }
-            metrics->deletes++;
-        } else if (op == 2) {
-            const BST_ERROR be = data->search(
-                (const void **)&data->bst, values[start + rand_r(&seed) % i]);
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
-                (be & VALUE_EXISTS) != VALUE_EXISTS &&
-                (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
-                PANIC("Failed to search element");
-            }
-            metrics->searches++;
-        } else if (op == 3) {
-            const BST_ERROR be = data->min((const void **)&data->bst, NULL);
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY &&
-                (be & VALUE_EXISTS) != VALUE_EXISTS &&
-                (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
-                PANIC("Failed to find BST min");
-            }
-            metrics->mins++;
-        } else if (op == 4) {
-            const BST_ERROR be = data->max((const void **)&data->bst, NULL);
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to find BST max");
-            }
-            metrics->maxs++;
-        } else if (op == 5) {
-            const BST_ERROR be = data->height((const void **)&data->bst, NULL);
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to find BST height");
-            }
-            metrics->heights++;
         } else {
-            const BST_ERROR be = data->width((const void **)&data->bst, NULL);
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to find BST height");
+            if (op == 2) {
+                const BST_ERROR be =
+                    data->search((const void **)&data->bst,
+                                 values[start + rand_r(&seed) % i]);
+                if ((be & SUCCESS) != SUCCESS &&
+                    (be & BST_EMPTY) != BST_EMPTY &&
+                    (be & VALUE_EXISTS) != VALUE_EXISTS &&
+                    (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
+                    PANIC("Failed to search element");
+                }
+                metrics->searches++;
+            } else if (op == 3) {
+                const BST_ERROR be = data->min((const void **)&data->bst, NULL);
+                if ((be & SUCCESS) != SUCCESS &&
+                    (be & BST_EMPTY) != BST_EMPTY &&
+                    (be & VALUE_EXISTS) != VALUE_EXISTS &&
+                    (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
+                    PANIC("Failed to find BST min");
+                }
+                metrics->mins++;
+            } else if (op == 4) {
+                const BST_ERROR be = data->max((const void **)&data->bst, NULL);
+                if ((be & SUCCESS) != SUCCESS &&
+                    (be & BST_EMPTY) != BST_EMPTY) {
+                    PANIC("Failed to find BST max");
+                }
+                metrics->maxs++;
+            } else if (op == 5) {
+                const BST_ERROR be =
+                    data->height((const void **)&data->bst, NULL);
+                if ((be & SUCCESS) != SUCCESS &&
+                    (be & BST_EMPTY) != BST_EMPTY) {
+                    PANIC("Failed to find BST height");
+                }
+                metrics->heights++;
+            } else {
+                const BST_ERROR be =
+                    data->width((const void **)&data->bst, NULL);
+                if ((be & SUCCESS) != SUCCESS &&
+                    (be & BST_EMPTY) != BST_EMPTY) {
+                    PANIC("Failed to find BST height");
+                }
+                metrics->widths++;
             }
-            metrics->widths++;
         }
     }
 
@@ -383,7 +406,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
 
 void bst_test(const int64_t operations, const size_t threads,
               const enum bst_type bt, const enum test_strat strat,
-              const size_t repeat, int64_t *values) {
+              const size_t repeat, int64_t *values, float write_prob) {
     char *bst_type = NULL;
     char *strat_type = NULL;
 
@@ -430,6 +453,7 @@ void bst_test(const int64_t operations, const size_t threads,
         t->operations = ti;
         t->start = i * ti;
         t->values = values;
+        t->write_prob = write_prob;
         t->metrics = bst_metrics_new();
         switch (bt) {
         case ST:
@@ -597,26 +621,45 @@ void bst_test(const int64_t operations, const size_t threads,
 
 int main(const int argc, char **argv) {
     int64_t operations = 0, threads = 1, repeat = 1;
+    float write_prob = 0.5;
     enum bst_type type = 0;
     enum test_strat strat = 0;
 
     opterr = 0;
 
     int c;
-    while ((c = getopt(argc, argv, "ho:t:r:s:glc")) != -1)
+    while ((c = getopt(argc, argv, "hn:o:t:r:s:glc")) != -1)
         switch (c) {
         case 'h':
             fprintf(stdout, "%s", usage());
             exit(0);
-        case 'o':
+        case 'n':
             if (str2int(&operations, optarg) != STR2LLINT_SUCCESS) {
-                PANIC("Invalid value for option -o");
+                PANIC("Invalid value for option -n");
             }
 
             if (operations < 1) {
+                PANIC("Invalid value for option -n");
+            }
+
+            break;
+        case 'o':
+            size_t len = strnlen(optarg, 4);
+            if (len == 4 || len < 1) {
                 PANIC("Invalid value for option -o");
             }
 
+            char ws[5] = {0};
+
+            strncpy(ws, optarg, 3);
+
+            errno = 0;
+            const float w = strtof(ws, NULL);
+            if (errno != 0) {
+                PANIC("Invalid value for option -o");
+            }
+
+            write_prob = w / 100;
             break;
         case 't':
             if (str2int(&threads, optarg) != STR2LLINT_SUCCESS) {
@@ -669,6 +712,8 @@ int main(const int argc, char **argv) {
         case '?':
             if (optopt == 'o') {
                 PANIC("Option -o requires an argument.");
+            } else if (optopt == 'n') {
+                PANIC("Option -n requires an argument.");
             } else if (optopt == 't') {
                 PANIC("Option -t requires an argument.");
             } else if (optopt == 'r') {
@@ -708,51 +753,53 @@ int main(const int argc, char **argv) {
 
     // Execute possible combinations per strat
     if ((type & ST) == ST && (strat & INSERT) == INSERT) {
-        bst_test(operations, 1, ST, INSERT, repeat, values);
+        bst_test(operations, 1, ST, INSERT, repeat, values, write_prob);
     }
 
     if ((type & ST) == ST && (strat & WRITE) == WRITE) {
-        bst_test(operations, 1, ST, WRITE, repeat, values);
+        bst_test(operations, 1, ST, WRITE, repeat, values, write_prob);
     }
 
     if ((type & ST) == ST && (strat & READ) == READ) {
-        bst_test(operations, 1, ST, READ, repeat, values);
+        bst_test(operations, 1, ST, READ, repeat, values, write_prob);
     }
 
     if ((type & ST) == ST && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, 1, ST, READ_WRITE, repeat, values);
+        bst_test(operations, 1, ST, READ_WRITE, repeat, values, write_prob);
     }
 
     if ((type & CGL) == CGL && (strat & INSERT) == INSERT) {
-        bst_test(operations, threads, CGL, INSERT, repeat, values);
+        bst_test(operations, threads, CGL, INSERT, repeat, values, write_prob);
     }
 
     if ((type & CGL) == CGL && (strat & WRITE) == WRITE) {
-        bst_test(operations, threads, CGL, WRITE, repeat, values);
+        bst_test(operations, threads, CGL, WRITE, repeat, values, write_prob);
     }
 
     if ((type & CGL) == CGL && (strat & READ) == READ) {
-        bst_test(operations, threads, CGL, READ, repeat, values);
+        bst_test(operations, threads, CGL, READ, repeat, values, write_prob);
     }
 
     if ((type & CGL) == CGL && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, threads, CGL, READ_WRITE, repeat, values);
+        bst_test(operations, threads, CGL, READ_WRITE, repeat, values,
+                 write_prob);
     }
 
     if ((type & FGL) == FGL && (strat & INSERT) == INSERT) {
-        bst_test(operations, threads, FGL, INSERT, repeat, values);
+        bst_test(operations, threads, FGL, INSERT, repeat, values, write_prob);
     }
 
     if ((type & FGL) == FGL && (strat & WRITE) == WRITE) {
-        bst_test(operations, threads, FGL, WRITE, repeat, values);
+        bst_test(operations, threads, FGL, WRITE, repeat, values, write_prob);
     }
 
     if ((type & FGL) == FGL && (strat & READ) == READ) {
-        bst_test(operations, threads, FGL, READ, repeat, values);
+        bst_test(operations, threads, FGL, READ, repeat, values, write_prob);
     }
 
     if ((type & FGL) == FGL && (strat & READ_WRITE) == READ_WRITE) {
-        bst_test(operations, threads, FGL, READ_WRITE, repeat, values);
+        bst_test(operations, threads, FGL, READ_WRITE, repeat, values,
+                 write_prob);
     }
 
     free(values);
