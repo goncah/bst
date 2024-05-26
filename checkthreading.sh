@@ -5,4 +5,4 @@ cmake --build out --target all
 valgrind --tool=helgrind \
          --verbose \
          --log-file=out/helgrind-out.txt \
-         ./out/bst -o 1000 -g -l -a -s insert -s write -s read -s read_write -r 2 -t $(nproc --all)
+         ./out/bst -n 1000 -g -l -a -s insert -s write -s read -s read_write -r 2 -t $(nproc --all)
