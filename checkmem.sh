@@ -7,4 +7,4 @@ valgrind --leak-check=full \
          --track-origins=yes \
          --verbose \
          --log-file=out/valgrind-out.txt \
-         ./out/bst -o 1000 -c -g -l -s insert -s write -s read -s read_write -r 2 -t $(nproc --all)
+         ./out/bst -o 1000 -c -g -l -a -s insert -s write -s read -s read_write -r 2 -t $(nproc --all)

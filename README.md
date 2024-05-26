@@ -43,11 +43,21 @@ Options:
    read       - Random search, min, max, height and width. -o sets the number of elements in the read.
    read_write - Random inserts, deletes, search, min, max, height and width with random generated numbers.
 
--c Set the BST type to ST, can be set with -g and -l to test multiple BST types
+-a Set the BST type to Atomic, can be set with -c, -g and -l to test multiple BST types
 
--g Set the BST type to MT Global RwLock, can be set with -c and -l to test multiple BST types
+-c Set the BST type to ST, can be set with -a, -g and -l to test multiple BST types
 
--l Set the BST type to MT Local RwLock, can be set with -c and -g to test multiple BST types
+-g Set the BST type to MT Global RwLock, can be set with -a, -c and -l to test multiple BST types
+
+-l Set the BST type to MT Local RwLock, can be set with -a, -c and -g to test multiple BST types
+
+-m <#> Sets the memory order for atomic operations, default is 5 "memory_order_seq_cst", possible values are: 
+   0 - memory_order_relaxed, 
+   1 - memory_order_consume, 
+   2 - memory_order_acquire, 
+   3 - memory_order_release,
+   4 - memory_order_acq_rel,
+   5 - memory_order_seq_cst
 
 ### Output
 #### Output is csv format with the following columns:

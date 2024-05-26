@@ -14,7 +14,7 @@ endif ()
 add_subdirectory(src)
 
 add_executable(bst src/main.c)
-target_link_libraries(bst pthread bst_st bst_mt_cgl bst_mt_fgl)
+target_link_libraries(bst pthread bst_st bst_mt_cgl bst_mt_fgl bst_at)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     install(TARGETS bst_common DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -28,6 +28,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
 
     install(TARGETS bst_mt_fgl DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(DIRECTORY src/bst_mt_fgl/include/ DESTINATION include/bst_mt_fgl)
+
+    install(TARGETS bst_at DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(DIRECTORY src/bst_at/include/ DESTINATION include/bst_at)
 
     include(CPack)
 endif ()

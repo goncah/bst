@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -10,6 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "bst_at/include/bst_at.h"
 #include "bst_mt_cgl/include/bst_mt_cgl.h"
 #include "bst_mt_fgl/include/bst_mt_fgl.h"
 #include "bst_st/include/bst_st.h"
@@ -31,13 +33,23 @@ Options:\n\
 \t\twriteb     - Random inserts, deletes and rebalance with random generated numbers\n\
 \t\tread       - Random search, min, max, height and width. -o sets the number of elements in the read.\n\
 \t\tread_write - Random inserts, deletes, search, min, max, height and width with random generated numbers.\n\
-\t-c Set the BST type to ST, can be set with -g and -l to test multiple BST types\n\
-\t-g Set the BST type to MT Coarse-Grained Lock, can be set with -c and -l to test multiple BST types\n\
-\t-l Set the BST type to MT Fine-Grained Lock, can be set with -c and -g to test multiple BST types\n\
+\t-a Set the BST type to Atomic, can be set with -c, -g and -l to test multiple BST types\n\
+\t-c Set the BST type to ST, can be set with -a, -g and -l to test multiple BST types\n\
+\t-g Set the BST type to MT Coarse-Grained Lock, can be set with -a, -c and -l to test multiple BST types\n\
+\t-l Set the BST type to MT Fine-Grained Lock, can be set with -a, -c and -g to test multiple BST types\n\
+\t-m <#> Sets the memory order for atomic operations, default is 5 \"memory_order_seq_cst\", possible values are: \n\
+\t\t0 - memory_order_relaxed, \n\
+\t\t1 - memory_order_consume, \n\
+\t\t2 - memory_order_acquire, \n\
+\t\t3 - memory_order_release,\n\
+\t\t4 - memory_order_acq_rel,\n\
+\t\t5 - memory_order_seq_cst\n\
     \n";
 
     return msg;
 }
+
+memory_order mo = memory_order_seq_cst;
 
 // Robert Jenkins' 96 bit Mix Function
 // https://web.archive.org/web/20070111091013/http://www.concentric.net/~Ttwang/tech/inthash.htm
@@ -121,6 +133,7 @@ enum bst_type {
     ST = (1u << 1),
     CGL = (1u << 2),
     FGL = (1u << 3),
+    AT = (1u << 4),
 };
 
 enum test_strat {
@@ -191,7 +204,7 @@ void set_st_functions(test_bst_s *t) {
     t->rebalance = (BST_ERROR(*)(const void **))bst_st_rebalance;
 }
 
-void set_mt_gmtx_functions(test_bst_s *t) {
+void set_mt_cgl_functions(test_bst_s *t) {
     t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_cgl_add;
     t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_cgl_search;
     t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_min;
@@ -202,7 +215,7 @@ void set_mt_gmtx_functions(test_bst_s *t) {
     t->rebalance = (BST_ERROR(*)(const void **))bst_mt_cgl_rebalance;
 }
 
-void set_mt_lrwl_functions(test_bst_s *t) {
+void set_mt_fgl_functions(test_bst_s *t) {
     t->add = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_add;
     t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_search;
     t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_min;
@@ -211,6 +224,17 @@ void set_mt_lrwl_functions(test_bst_s *t) {
     t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_width;
     t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_delete;
     t->rebalance = (BST_ERROR(*)(const void **))bst_mt_fgl_rebalance;
+}
+
+void set_at_functions(test_bst_s *t) {
+    t->add = (BST_ERROR(*)(const void **, int64_t))bst_at_add;
+    t->search = (BST_ERROR(*)(const void **, int64_t))bst_at_search;
+    t->min = (BST_ERROR(*)(const void **, int64_t *))bst_at_min;
+    t->max = (BST_ERROR(*)(const void **, int64_t *))bst_at_max;
+    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_at_height;
+    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_at_width;
+    t->delete = (BST_ERROR(*)(const void **, int64_t))bst_at_delete;
+    t->rebalance = (BST_ERROR(*)(const void **))bst_at_rebalance;
 }
 
 void *bst_st_test_insert_thread(void *vargp) {
@@ -327,7 +351,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
 
     for (size_t i = 0; i < operations; i++) {
 
-        const int prob = data->write_prob == 0     ? 0
+        const int prob = data->write_prob == 0   ? 0
                          : data->write_prob == 1 ? 1
                          : rand_r(&seed) < (int)(data->write_prob * RAND_MAX)
                              ? 1
@@ -417,10 +441,13 @@ void bst_test(const int64_t operations, const size_t threads,
         bst_type = "ST";
         break;
     case CGL:
-        bst_type = "GRWL";
+        bst_type = "CGL";
         break;
     case FGL:
-        bst_type = "LRWL";
+        bst_type = "FGL";
+        break;
+    case AT:
+        bst_type = "AT";
         break;
     }
 
@@ -460,10 +487,13 @@ void bst_test(const int64_t operations, const size_t threads,
             set_st_functions(t);
             break;
         case CGL:
-            set_mt_gmtx_functions(t);
+            set_mt_cgl_functions(t);
             break;
         case FGL:
-            set_mt_lrwl_functions(t);
+            set_mt_fgl_functions(t);
+            break;
+        case AT:
+            set_at_functions(t);
             break;
         }
 
@@ -505,6 +535,15 @@ void bst_test(const int64_t operations, const size_t threads,
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
                     bst_mt_fgl_add((bst_mt_fgl_t **)bst__, values[i]);
+                }
+            }
+            break;
+        case AT:
+            bst = bst_at_new(mo, NULL);
+            bst__ = &bst;
+            if (add_elements) {
+                for (int i = 0; i < operations; i++) {
+                    bst_at_add((bst_at_t **)bst__, values[i]);
                 }
             }
             break;
@@ -559,6 +598,14 @@ void bst_test(const int64_t operations, const size_t threads,
             bst_mt_fgl_height((bst_mt_fgl_t **)bst__, &height);
             bst_mt_fgl_width((bst_mt_fgl_t **)bst__, &width);
             bst_mt_fgl_free((bst_mt_fgl_t **)bst__);
+            break;
+        case AT:
+            bst_at_node_count((bst_at_t **)bst__, &nc);
+            bst_at_min((bst_at_t **)bst__, &min);
+            bst_at_max((bst_at_t **)bst__, &max);
+            bst_at_height((bst_at_t **)bst__, &height);
+            bst_at_width((bst_at_t **)bst__, &width);
+            bst_at_free((bst_at_t **)bst__);
             break;
         }
 
@@ -628,11 +675,33 @@ int main(const int argc, char **argv) {
     opterr = 0;
 
     int c;
-    while ((c = getopt(argc, argv, "hn:o:t:r:s:glc")) != -1)
+    while ((c = getopt(argc, argv, "m:hn:o:t:r:s:glca")) != -1)
         switch (c) {
         case 'h':
             fprintf(stdout, "%s", usage());
             exit(0);
+        case 'm':
+            size_t len = strnlen(optarg, 2);
+            if (len == 2 || len != 1) {
+                PANIC("Invalid value for option -m");
+            }
+
+            char ws[2] = {0};
+
+            strncpy(ws, optarg, 1);
+
+            errno = 0;
+            intmax_t m = strtoimax(ws, NULL, 10);
+            if (m == UINTMAX_MAX && errno == ERANGE) {
+                PANIC("Invalid value for option -o");
+            }
+
+            if (m < 0 || m > 5) {
+                PANIC("Invalid value for option -o");
+            }
+
+            mo = m;
+            break;
         case 'n':
             if (str2int(&operations, optarg) != STR2LLINT_SUCCESS) {
                 PANIC("Invalid value for option -n");
@@ -644,17 +713,17 @@ int main(const int argc, char **argv) {
 
             break;
         case 'o':
-            size_t len = strnlen(optarg, 4);
-            if (len == 4 || len < 1) {
+            size_t lens = strnlen(optarg, 4);
+            if (lens == 4 || lens < 1) {
                 PANIC("Invalid value for option -o");
             }
 
-            char ws[5] = {0};
+            char wss[5] = {0};
 
-            strncpy(ws, optarg, 3);
+            strncpy(wss, optarg, 3);
 
             errno = 0;
-            const float w = strtof(ws, NULL);
+            const float w = strtof(wss, NULL);
             if (errno != 0) {
                 PANIC("Invalid value for option -o");
             }
@@ -708,6 +777,9 @@ int main(const int argc, char **argv) {
             break;
         case 'c':
             type = type | ST;
+            break;
+        case 'a':
+            type = type | AT;
             break;
         case '?':
             if (optopt == 'o') {
@@ -799,6 +871,23 @@ int main(const int argc, char **argv) {
 
     if ((type & FGL) == FGL && (strat & READ_WRITE) == READ_WRITE) {
         bst_test(operations, threads, FGL, READ_WRITE, repeat, values,
+                 write_prob);
+    }
+
+    if ((type & AT) == AT && (strat & INSERT) == INSERT) {
+        bst_test(operations, threads, AT, INSERT, repeat, values, write_prob);
+    }
+
+    if ((type & AT) == AT && (strat & WRITE) == WRITE) {
+        bst_test(operations, threads, AT, WRITE, repeat, values, write_prob);
+    }
+
+    if ((type & AT) == AT && (strat & READ) == READ) {
+        bst_test(operations, threads, AT, READ, repeat, values, write_prob);
+    }
+
+    if ((type & AT) == AT && (strat & READ_WRITE) == READ_WRITE) {
+        bst_test(operations, threads, AT, READ_WRITE, repeat, values,
                  write_prob);
     }
 
