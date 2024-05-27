@@ -3,7 +3,7 @@ Universidade Aberta
 File: bst_at.h
 Author: Hugo Gonçalves, 2100562
 
-MT Safe BST using atomic operations.
+MT Safe BST using atomic operations and hazard pointers.
 
 MIT License
 
@@ -36,22 +36,26 @@ IN THE SOFTWARE.
 #include "../../include/bst_common.h"
 
 /**
- * Holds a tree node with pointer to both children nodes
+ * Holds a tree node with pointers to both children nodes
  */
 typedef struct bst_at_node {
-    atomic_size_t ref_count;
-    atomic_bool waiting_free;
     int64_t value;
-    struct bst_at_node *left;
-    struct bst_at_node *right;
+    _Atomic(struct bst_at_node *) left;
+    _Atomic(struct bst_at_node *) right;
 } bst_at_node_t;
+
+typedef struct hazard_pointer {
+    _Atomic(bst_at_node_t *) pointer;
+    struct hazard_pointer *next;
+} hazard_pointer_t;
 
 /**
  * The BST
  */
 typedef struct bst_at {
     atomic_size_t count;
-    bst_at_node_t *root;
+    _Atomic(bst_at_node_t *) root;
+    _Atomic(hazard_pointer_t *) hazard_pointers;
 } bst_at_t;
 
 // Prototypes

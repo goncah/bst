@@ -3,7 +3,7 @@ Universidade Aberta
 File: bst_at.c
 Author: Hugo Gonçalves, 2100562
 
-MT Safe BST using atomic operations.
+MT Safe BST using atomic operations and hazard pointers.
 
 MIT License
 
@@ -36,63 +36,67 @@ IN THE SOFTWARE.
 
 #include <unistd.h>
 
+// Hazard pointers handling funtions
+static hazard_pointer_t *acquire_hazard_pointer(bst_at_t *bst) {
+    hazard_pointer_t *hp = malloc(sizeof(hazard_pointer_t));
+    atomic_store(&hp->pointer, NULL);
+    hp->next = NULL;
+
+    // Insert into global hazard pointer list
+    hazard_pointer_t *old_head = NULL;
+    do {
+        old_head = atomic_load(&bst->hazard_pointers);
+        hp->next = old_head;
+    } while (
+        !atomic_compare_exchange_weak(&bst->hazard_pointers, &old_head, hp));
+
+    return hp;
+}
+
+static void set_hazard_pointer(hazard_pointer_t *hp, bst_at_node_t *node) {
+    atomic_store(&hp->pointer, node);
+}
+
+static void release_hazard_pointer(hazard_pointer_t *hp) {
+    atomic_store(&hp->pointer, NULL);
+}
+
+static bool is_node_hazardous(bst_at_t *bst, bst_at_node_t *node) {
+    hazard_pointer_t *current = atomic_load(&bst->hazard_pointers);
+    while (current != NULL) {
+        if (atomic_load(&current->pointer) == node) {
+            return true;
+        }
+        current = current->next;
+    }
+    return false;
+}
+
+static void retire_node(bst_at_t *bst, bst_at_node_t *node) {
+    if (!is_node_hazardous(bst, node)) {
+        free(node);
+    }
+}
+
 static bst_at_node_t *bst_at_node_new(const int64_t value) {
     bst_at_node_t *node = malloc(sizeof(bst_at_node_t));
 
     if (node) {
         node->value = value;
-        atomic_init(&node->ref_count, 0);
-        atomic_init(&node->waiting_free, false);
-        atomic_init(&node->left, NULL);
-        atomic_init(&node->right, NULL);
+        atomic_store(&node->left, NULL);
+        atomic_store(&node->right, NULL);
     }
 
     return node;
-}
-
-// Helper function to load & increment node's rc
-static bst_at_node_t *load_node(bst_at_node_t *n) {
-    bst_at_node_t *node = atomic_load_explicit(&n, memory_order_acquire);
-
-    if (node &&
-        !atomic_load_explicit(&node->waiting_free, memory_order_acquire)) {
-        atomic_fetch_add_explicit(&node->ref_count, 1, memory_order_acquire);
-    } else {
-        return NULL;
-    }
-
-    return node;
-}
-
-// Helper function to decrease a node's rc, if zero and free is TRUE, free the
-// node, else loop until no one else holds a ref.
-static void release_node(bst_at_node_t *n, bool f) {
-    bst_at_node_t *node = atomic_load_explicit(&n, memory_order_acquire);
-    if (node) {
-        atomic_fetch_sub_explicit(&node->ref_count, 1, memory_order_release);
-        atomic_bool c;
-        atomic_init(&c, false);
-        if (f && atomic_compare_exchange_strong_explicit(
-                     &node->waiting_free, &c, true, memory_order_acq_rel,
-                     memory_order_acquire)) {
-            for (;;) {
-                if (!atomic_load_explicit(&node->ref_count,
-                                          memory_order_acquire)) {
-                    free(node);
-                    return;
-                }
-                //sleep(1);
-            }
-        }
-    }
 }
 
 bst_at_t *bst_at_new(BST_ERROR *err) {
     bst_at_t *bst = malloc(sizeof(bst_at_t));
 
     if (bst) {
-        atomic_init(&bst->count, 0);
-        atomic_init(&bst->root, NULL);
+        atomic_store(&bst->count, 0);
+        atomic_store(&bst->root, NULL);
+        atomic_store(&bst->hazard_pointers, NULL);
 
         if (err) {
             *err = SUCCESS;
@@ -111,67 +115,65 @@ BST_ERROR bst_at_add(bst_at_t **bst, const int64_t value) {
 
     bst_at_t *bst_ = *bst;
 
-    bst_at_node_t *node = bst_at_node_new(value);
+    bst_at_node_t *new_node = bst_at_node_new(value);
 
-    if (node == NULL)
-        return MALLOC_FAILURE;
+    while (1) {
+        bst_at_node_t *parent = NULL;
+        bst_at_node_t *current = atomic_load(&bst_->root);
+        hazard_pointer_t *hp_parent = acquire_hazard_pointer(bst_);
+        hazard_pointer_t *hp_current = acquire_hazard_pointer(bst_);
 
-    bst_at_node_t *current, *parent = NULL;
-
-    do {
-        bst_at_node_t *expected = NULL;
-        if (atomic_compare_exchange_strong_explicit(&bst_->root, &expected,
-                                                    node, memory_order_acq_rel,
-                                                    memory_order_acquire)) {
-            atomic_fetch_add_explicit(&bst_->count, 1, memory_order_release);
-            return SUCCESS;
-        }
-
-        current = load_node(bst_->root);
         while (current != NULL) {
-            parent = current;
-            if (value < current->value) {
-                bst_at_node_t *next = current->left;
-                current = load_node(next);
-                if (current)
-                    release_node(parent, false);
-            } else if (value > current->value) {
-                bst_at_node_t *next = current->right;
-                current = load_node(next);
-                if (current)
-                    release_node(parent, false);
-            } else {
-                free(node);
-                release_node(parent, false);
+            set_hazard_pointer(hp_current, current);
+
+            if (!compare(value, current->value)) {
+                release_hazard_pointer(hp_parent);
+                release_hazard_pointer(hp_current);
+                free(new_node);
                 return VALUE_EXISTS;
             }
+
+            parent = current;
+            set_hazard_pointer(hp_parent, parent);
+
+            if (compare(value, current->value) < 0) {
+                current = atomic_load(&current->left);
+            } else {
+                current = atomic_load(&current->right);
+            }
+            set_hazard_pointer(hp_current, current);
         }
 
-        expected = NULL;
-        if (compare(value, parent->value) < 0) {
-            if (atomic_compare_exchange_strong_explicit(
-                    &parent->left, &expected, node, memory_order_acq_rel,
-                    memory_order_acquire)) {
-                atomic_fetch_add_explicit(&bst_->count, 1,
-                                          memory_order_release);
-                release_node(parent, false);
-                release_node(current, false);
+        if (parent == NULL) {
+            if (atomic_compare_exchange_weak(&bst_->root, &current,
+                                               new_node)) {
+                release_hazard_pointer(hp_parent);
+                release_hazard_pointer(hp_current);
+                atomic_fetch_add(&bst_->count, 1);
                 return SUCCESS;
             }
         } else {
-            if (atomic_compare_exchange_strong_explicit(
-                    &parent->right, &expected, node, memory_order_acq_rel,
-                    memory_order_acquire)) {
-                atomic_fetch_add_explicit(&bst_->count, 1,
-                                          memory_order_release);
-                release_node(parent, false);
-                release_node(current, false);
-                return SUCCESS;
+            if (compare(value, parent->value) < 0) {
+                if (atomic_compare_exchange_weak(&parent->left, &current,
+                                                   new_node)) {
+                    release_hazard_pointer(hp_parent);
+                    release_hazard_pointer(hp_current);
+                    atomic_fetch_add(&bst_->count, 1);
+                    return SUCCESS;
+                }
+            } else {
+                if (atomic_compare_exchange_weak(&parent->right, &current,
+                                                   new_node)) {
+                    release_hazard_pointer(hp_parent);
+                    release_hazard_pointer(hp_current);
+                    atomic_fetch_add(&bst_->count, 1);
+                    return SUCCESS;
+                }
             }
         }
-        release_node(parent, false);
-        release_node(current, false);
-    } while (1);
+        release_hazard_pointer(hp_parent);
+        release_hazard_pointer(hp_current);
+    }
 }
 
 BST_ERROR bst_at_search(bst_at_t **bst, const int64_t value) {
@@ -181,21 +183,25 @@ BST_ERROR bst_at_search(bst_at_t **bst, const int64_t value) {
 
     bst_at_t *bst_ = *bst;
 
-    bst_at_node_t *current = load_node(bst_->root);
+    hazard_pointer_t *hp = acquire_hazard_pointer(bst_);
+    bst_at_node_t *current = atomic_load(&bst_->root);
+
     while (current != NULL) {
-        if (compare(value, current->value) < 0) {
-            bst_at_node_t *next = current->left;
-            release_node(current, false);
-            current = load_node(next);
-        } else if (value > current->value) {
-            bst_at_node_t *next = current->right;
-            release_node(current, false);
-            current = load_node(next);
+        set_hazard_pointer(hp, current);
+
+        int64_t cmp = compare(value, current->value);
+
+        if (cmp < 0) {
+            current = atomic_load(&current->left);
+        } else if (cmp > 0) {
+            current = atomic_load(&current->right);
         } else {
-            release_node(current, false);
-            return SUCCESS | VALUE_EXISTS;
+            release_hazard_pointer(hp);
+            return SUCCESS;
         }
     }
+
+    release_hazard_pointer(hp);
 
     return VALUE_NONEXISTENT;
 }
@@ -207,24 +213,26 @@ BST_ERROR bst_at_min(bst_at_t **bst, int64_t *value) {
 
     bst_at_t *bst_ = *bst;
 
-    bst_at_node_t *current = load_node(bst_->root);
+    hazard_pointer_t *hp = acquire_hazard_pointer(bst_);
+    bst_at_node_t *current = atomic_load(&bst_->root);
 
-    if (current) {
-        while (current->left != NULL) {
-            bst_at_node_t *next = current->left;
-            release_node(current, false);
-            current = load_node(next);
-        }
-
-        if (value) {
-            *value = current->value;
-        }
-
-        release_node(current, false);
-        return SUCCESS;
+    if (current == NULL) {
+        release_hazard_pointer(hp);
+        return BST_EMPTY;
     }
 
-    return BST_EMPTY;
+    while (atomic_load(&current->left) != NULL) {
+        set_hazard_pointer(hp, current);
+        current = atomic_load(&current->left);
+    }
+
+    set_hazard_pointer(hp, current);
+    if (value) {
+        *value = current->value;
+    }
+    release_hazard_pointer(hp);
+
+    return SUCCESS;
 }
 
 BST_ERROR bst_at_max(bst_at_t **bst, int64_t *value) {
@@ -234,24 +242,26 @@ BST_ERROR bst_at_max(bst_at_t **bst, int64_t *value) {
 
     bst_at_t *bst_ = *bst;
 
-    bst_at_node_t *current = load_node(bst_->root);
+    hazard_pointer_t *hp = acquire_hazard_pointer(bst_);
+    bst_at_node_t *current = atomic_load(&bst_->root);
 
-    if (current) {
-        while (current->right != NULL) {
-            bst_at_node_t *next = current->right;
-            release_node(current, false);
-            current = load_node(next);
-        }
-
-        if (value) {
-            *value = current->value;
-        }
-
-        release_node(current, false);
-        return SUCCESS;
+    if (current == NULL) {
+        release_hazard_pointer(hp);
+        return BST_EMPTY;
     }
 
-    return BST_EMPTY;
+    while (atomic_load(&current->right) != NULL) {
+        set_hazard_pointer(hp, current);
+        current = atomic_load(&current->right);
+    }
+
+    set_hazard_pointer(hp, current);
+    if (value) {
+        *value = current->value;
+    }
+    release_hazard_pointer(hp);
+
+    return SUCCESS;
 }
 
 BST_ERROR bst_at_node_count(bst_at_t **bst, size_t *value) {
@@ -261,7 +271,7 @@ BST_ERROR bst_at_node_count(bst_at_t **bst, size_t *value) {
 
     bst_at_t *bst_ = *bst;
 
-    size_t s = atomic_load_explicit(&bst_->count, memory_order_acquire);
+    size_t s = atomic_load(&bst_->count);
 
     if (value) {
         *value = s;
@@ -270,75 +280,22 @@ BST_ERROR bst_at_node_count(bst_at_t **bst, size_t *value) {
     return SUCCESS;
 }
 
-static size_t bst_at_find_height(bst_at_node_t *r) {
-    bst_at_node_t *root = load_node(r);
-
-    if (root == NULL) {
-        return 0;
-    }
-
-    const size_t left_height = bst_at_find_height(root->left);
-    const size_t right_height = bst_at_find_height(root->right);
-    release_node(root, false);
-    return 1 + (left_height > right_height ? left_height : right_height);
-}
-
 BST_ERROR bst_at_height(bst_at_t **bst, size_t *value) {
-    if (bst == NULL || *bst == NULL) {
-        return BST_EMPTY;
-    }
-
-    bst_at_t *bst_ = *bst;
-    const size_t h = bst_at_find_height(bst_->root);
-
-    if (value) {
-        *value = h;
-    }
-
-    return SUCCESS;
-}
-
-static void count_nodes_at_level(bst_at_node_t *r, const size_t level,
-                                 size_t *count) {
-    bst_at_node_t *root = load_node(r);
-
-    if (root == NULL) {
-        return;
-    }
-
-    if (level == 0) {
-        (*count)++;
-    } else {
-        count_nodes_at_level(root->left, level - 1, count);
-        count_nodes_at_level(root->right, level - 1, count);
-    }
-
-    release_node(root, false);
+    // if (bst == NULL || *bst == NULL) {
+    //     return BST_EMPTY;
+    // }
+    //
+    // bst_at_t *bst_ = *bst;
+    return 0;
 }
 
 BST_ERROR bst_at_width(bst_at_t **bst, size_t *value) {
-    if (bst == NULL || *bst == NULL) {
-        return BST_EMPTY;
-    }
-
-    bst_at_t *bst_ = *bst;
-    const size_t height = bst_at_find_height(bst_->root);
-    bst_at_node_t *root = load_node(bst_->root);
-    size_t max_width = 0;
-
-    for (size_t level = 0; level <= height; level++) {
-        size_t count = 0;
-        count_nodes_at_level(root, level, &count);
-        if (count > max_width) {
-            max_width = count;
-        }
-    }
-
-    if (value) {
-        *value = max_width;
-    }
-
-    return SUCCESS;
+    // if (bst == NULL || *bst == NULL) {
+    //     return BST_EMPTY;
+    // }
+    //
+    // bst_at_t *bst_ = *bst;
+    return 0;
 }
 
 BST_ERROR bst_at_traverse_preorder(bst_at_t **bst) { return 0; }
@@ -347,6 +304,20 @@ BST_ERROR bst_at_traverse_inorder(bst_at_t **bst) { return 0; }
 
 BST_ERROR bst_at_traverse_postorder(bst_at_t **bst) { return 0; }
 
+static bool bst_replace_node(bst_at_t *bst, bst_at_node_t *parent,
+                             bst_at_node_t *current, bst_at_node_t *new_node) {
+    if (parent == NULL) {
+        return atomic_compare_exchange_strong(&bst->root, &current, new_node);
+    }
+
+    if (current == atomic_load(&parent->left)) {
+        return atomic_compare_exchange_strong(&parent->left, &current,
+                                              new_node);
+    }
+
+    return atomic_compare_exchange_strong(&parent->right, &current, new_node);
+}
+
 BST_ERROR bst_at_delete(bst_at_t **bst, const int64_t value) {
     if (bst == NULL || *bst == NULL) {
         return BST_EMPTY;
@@ -354,78 +325,105 @@ BST_ERROR bst_at_delete(bst_at_t **bst, const int64_t value) {
 
     bst_at_t *bst_ = *bst;
 
-    do {
-        bst_at_node_t *current = load_node(bst_->root);
-        bst_at_node_t **link = &bst_->root;
+    hazard_pointer_t *hp_parent = acquire_hazard_pointer(bst_);
+    hazard_pointer_t *hp_current = acquire_hazard_pointer(bst_);
+    hazard_pointer_t *hp_successor = acquire_hazard_pointer(bst_);
 
-        while (current != NULL && current->value != value) {
-            if (compare(value, current->value) < 0) {
-                link = &current->left;
-                bst_at_node_t *next = current->left;
-                release_node(current, false);
-                current = load_node(next);
-            } else {
-                link = &current->right;
-                bst_at_node_t *next = current->right;
-                release_node(current, false);
-                current = load_node(next);
+    while (1) {
+        bst_at_node_t *parent = NULL;
+        bst_at_node_t *current = atomic_load(&bst_->root);
+
+        while (current != NULL) {
+            set_hazard_pointer(hp_current, current);
+
+            if (!compare(value, current->value)) {
+                break;
             }
+
+            parent = current;
+            set_hazard_pointer(hp_parent, parent);
+
+            if (compare(value, current->value) < 0) {
+                current = atomic_load(&current->left);
+            } else {
+                current = atomic_load(&current->right);
+            }
+            set_hazard_pointer(hp_current, current);
         }
 
-        if (current == NULL)
+        if (current == NULL) {
+            release_hazard_pointer(hp_parent);
+            release_hazard_pointer(hp_current);
+            release_hazard_pointer(hp_successor);
             return VALUE_NONEXISTENT;
+        }
 
-        if (current->left == NULL || current->right == NULL) {
+        bst_at_node_t *left_child = atomic_load(&current->left);
+        bst_at_node_t *right_child = atomic_load(&current->right);
+
+        if (left_child == NULL || right_child == NULL) {
             bst_at_node_t *child =
-                current->left ? current->left : current->right;
-            if (atomic_compare_exchange_strong_explicit(link, &current, child,
-                                                        memory_order_acq_rel,
-                                                        memory_order_acquire)) {
-                release_node(current, true);
-                atomic_fetch_sub_explicit(&bst_->count, 1,
-                                          memory_order_release);
+                left_child != NULL ? left_child : right_child;
+
+            if (bst_replace_node(bst_, parent, current, child)) {
+                release_hazard_pointer(hp_parent);
+                release_hazard_pointer(hp_current);
+                release_hazard_pointer(hp_successor);
+                retire_node(bst_, current);
+                atomic_fetch_sub(&bst_->count, 1);
                 return SUCCESS;
             }
         } else {
-            bst_at_node_t *successor = load_node(current->right);
-            bst_at_node_t **successor_link = &current->right;
+            bst_at_node_t *successor_parent = current;
+            bst_at_node_t *successor = right_child;
+            set_hazard_pointer(hp_successor, successor);
 
-            while (successor->left != NULL) {
-                successor_link = &successor->left;
-                bst_at_node_t *next = successor->left;
-                release_node(successor, false);
-                successor = load_node(next);
+            while (atomic_load(&successor->left) != NULL) {
+                successor_parent = successor;
+                successor = atomic_load(&successor->left);
+                set_hazard_pointer(hp_successor, successor);
             }
 
-            current->value = successor->value;
-            if (atomic_compare_exchange_strong_explicit(
-                    successor_link, &successor, successor->right,
-                    memory_order_acq_rel, memory_order_acquire)) {
-                atomic_fetch_sub_explicit(&bst_->count, 1,
-                                          memory_order_release);
-                release_node(successor, true);
-                release_node(current, false);
-                return SUCCESS;
+            const int64_t successor_value = successor->value;
+
+            // Replace the current node's key with the successor's key
+            current->value = successor_value;
+
+            // Now we need to remove the successor node
+            if (successor_parent == current) {
+                atomic_store(&successor_parent->right,
+                             atomic_load(&successor->right));
+            } else {
+                atomic_store(&successor_parent->left,
+                             atomic_load(&successor->right));
             }
 
-            release_node(successor, false);
-            release_node(current, false);
+            release_hazard_pointer(hp_parent);
+            release_hazard_pointer(hp_current);
+            release_hazard_pointer(hp_successor);
+
+            retire_node(bst_, successor);
+            atomic_fetch_sub(&bst_->count, 1);
+            return SUCCESS;
         }
-    } while (1);
+    }
 }
 
 BST_ERROR bst_at_rebalance(bst_at_t **bst) { return 0; }
 
-static void bst_at_node_free(bst_at_node_t *root) {
-    if (root == NULL) {
-        return;
+static void bst_at_free_node(bst_at_node_t *root) {
+    if (root) {
+        bst_at_free_node(root->left);
+        bst_at_free_node(root->right);
+        free(root);
     }
+}
 
-    bst_at_node_free(root->left);
-
-    bst_at_node_free(root->right);
-
-    free(root);
+static void bst_at_free_hp(hazard_pointer_t *hp) {
+    if (hp) {
+        bst_at_free_hp(hp->next);
+        free(hp);
+    }
 }
 
 BST_ERROR bst_at_free(bst_at_t **bst) {
@@ -436,10 +434,9 @@ BST_ERROR bst_at_free(bst_at_t **bst) {
     bst_at_t *bst_ = *bst;
     *bst = NULL;
 
-    atomic_init(&bst_->count, 0);
-    bst_at_node_free(bst_->root);
-
+    bst_at_free_node(atomic_load(&bst_->root));
+    bst_at_free_hp(atomic_load(&bst_->hazard_pointers));
     free(bst_);
 
-    return SUCCESS;
+    return 0;
 }
