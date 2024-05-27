@@ -39,6 +39,8 @@ IN THE SOFTWARE.
  * Holds a tree node with pointer to both children nodes
  */
 typedef struct bst_at_node {
+    atomic_size_t ref_count;
+    atomic_bool waiting_free;
     int64_t value;
     struct bst_at_node *left;
     struct bst_at_node *right;
@@ -55,7 +57,7 @@ typedef struct bst_at {
 
 // While the bst is using _strong CAS operations it might still fail, these are
 // the max retries we perform before returning.
-#define CAS_FAILED_RETRY_MAX 10
+#define CAS_FAILED_RETRY_MAX 100
 
 // Prototypes
 /**
