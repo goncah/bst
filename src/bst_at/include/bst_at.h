@@ -51,7 +51,6 @@ typedef struct bst_at_node {
  */
 typedef struct bst_at {
     atomic_size_t count;
-    memory_order mo;
     bst_at_node_t *root;
 } bst_at_t;
 
@@ -70,11 +69,10 @@ typedef struct bst_at {
  *
  * MALLOC_FAILURE - malloc() failed to allocate memory for the BST
  *
- * @param mo set the atomic operations memory order.
  * @param err NULL (no effect) or allocated pointer to store any errors
  * @return NULL or BST
  */
-bst_at_t *bst_at_new(memory_order mo, BST_ERROR *err);
+bst_at_t *bst_at_new(BST_ERROR *err);
 
 /**
  * Adds a new value to the BST - Thread safe.

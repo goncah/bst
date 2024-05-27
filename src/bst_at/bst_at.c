@@ -50,9 +50,10 @@ static bst_at_node_t *bst_at_node_new(const int64_t value) {
 
 // Helper function to load & increment node's rc
 static bst_at_node_t *load_node(bst_at_t *bst, bst_at_node_t *n) {
-    bst_at_node_t *node = atomic_load_explicit(&n, bst->mo);
+    bst_at_node_t *node = atomic_load_explicit(&n, memory_order_acquire);
 
-    if (node && !atomic_load_explicit(&node->waiting_free, bst->mo)) {
+    if (node &&
+        !atomic_load_explicit(&node->waiting_free, memory_order_acquire)) {
         atomic_fetch_add_explicit(&node->ref_count, 1, memory_order_acquire);
     } else {
         return NULL;
@@ -64,14 +65,17 @@ static bst_at_node_t *load_node(bst_at_t *bst, bst_at_node_t *n) {
 // Helper function to decrease a node's rc, if zero and free is TRUE, free the
 // node, else loop until no one else holds a ref.
 static void release_node(bst_at_t *bst, bst_at_node_t *n, bool f) {
-    bst_at_node_t *node = atomic_load_explicit(&n, bst->mo);
+    bst_at_node_t *node = atomic_load_explicit(&n, memory_order_acquire);
     if (node) {
         atomic_fetch_sub_explicit(&node->ref_count, 1, memory_order_release);
         atomic_bool c;
         atomic_init(&c, false);
-        if (f && atomic_compare_exchange_strong(&node->waiting_free, &c, true)) {
+        if (f && atomic_compare_exchange_strong_explicit(
+                     &node->waiting_free, &c, true, memory_order_acq_rel,
+                     memory_order_acquire)) {
             do {
-                if (!atomic_load_explicit(&node->ref_count, bst->mo)) {
+                if (!atomic_load_explicit(&node->ref_count,
+                                          memory_order_acquire)) {
                     free(node);
                     return;
                 }
@@ -80,11 +84,10 @@ static void release_node(bst_at_t *bst, bst_at_node_t *n, bool f) {
     }
 }
 
-bst_at_t *bst_at_new(memory_order mo, BST_ERROR *err) {
+bst_at_t *bst_at_new(BST_ERROR *err) {
     bst_at_t *bst = malloc(sizeof(bst_at_t));
 
     if (bst) {
-        bst->mo = mo;
         atomic_init(&bst->count, 0);
         atomic_init(&bst->root, NULL);
 
@@ -116,8 +119,9 @@ BST_ERROR bst_at_add(bst_at_t **bst, const int64_t value) {
     do {
         bst_at_node_t *expected = NULL;
         if (atomic_compare_exchange_strong_explicit(&bst_->root, &expected,
-                                                    node, bst_->mo, bst_->mo)) {
-            atomic_fetch_add(&bst_->count, 1);
+                                                    node, memory_order_acq_rel,
+                                                    memory_order_acquire)) {
+            atomic_fetch_add_explicit(&bst_->count, 1, memory_order_release);
             return SUCCESS;
         }
 
@@ -143,15 +147,19 @@ BST_ERROR bst_at_add(bst_at_t **bst, const int64_t value) {
         expected = NULL;
         if (compare(value, parent->value) < 0) {
             if (atomic_compare_exchange_strong_explicit(
-                    &parent->left, &expected, node, bst_->mo, bst_->mo)) {
-                atomic_fetch_add_explicit(&bst_->count, 1, bst_->mo);
+                    &parent->left, &expected, node, memory_order_acq_rel,
+                    memory_order_acquire)) {
+                atomic_fetch_add_explicit(&bst_->count, 1,
+                                          memory_order_release);
                 release_node(bst_, current, false);
                 return SUCCESS;
             }
         } else {
             if (atomic_compare_exchange_strong_explicit(
-                    &parent->right, &expected, node, bst_->mo, bst_->mo)) {
-                atomic_fetch_add_explicit(&bst_->count, 1, bst_->mo);
+                    &parent->right, &expected, node, memory_order_acq_rel,
+                    memory_order_acquire)) {
+                atomic_fetch_add_explicit(&bst_->count, 1,
+                                          memory_order_release);
                 release_node(bst_, current, false);
                 return SUCCESS;
             }
@@ -251,7 +259,7 @@ BST_ERROR bst_at_node_count(bst_at_t **bst, size_t *value) {
 
     bst_at_t *bst_ = *bst;
 
-    size_t s = atomic_load_explicit(&bst_->count, bst_->mo);
+    size_t s = atomic_load_explicit(&bst_->count, memory_order_acquire);
 
     if (value) {
         *value = s;
@@ -370,25 +378,31 @@ BST_ERROR bst_at_delete(bst_at_t **bst, const int64_t value) {
             bst_at_node_t *child =
                 current->left ? current->left : current->right;
             if (atomic_compare_exchange_strong_explicit(link, &current, child,
-                                                        bst_->mo, bst_->mo)) {
+                                                        memory_order_acq_rel,
+                                                        memory_order_acquire)) {
                 release_node(bst_, current, true);
-                atomic_fetch_sub_explicit(&bst_->count, 1, bst_->mo);
+                atomic_fetch_sub_explicit(&bst_->count, 1,
+                                          memory_order_release);
                 return SUCCESS;
             }
         } else {
-            bst_at_node_t *successor = current->right;
+            bst_at_node_t *successor = load_node(bst_, current->right);
             bst_at_node_t **successor_link = &current->right;
 
-            while (atomic_load_explicit(&successor->left, bst_->mo) != NULL) {
+            while (successor->left != NULL) {
                 successor_link = &successor->left;
-                successor = atomic_load_explicit(&successor->left, bst_->mo);
+                bst_at_node_t *next = successor->left;
+                release_node(bst_, successor, false);
+                successor = load_node(bst_, next);
             }
 
             current->value = successor->value;
             if (atomic_compare_exchange_strong_explicit(
-                    successor_link, &successor, successor->right, bst_->mo,
-                    bst_->mo)) {
-                atomic_fetch_sub_explicit(&bst_->count, 1, bst_->mo);
+                    successor_link, &successor, successor->right,
+                    memory_order_acq_rel, memory_order_acquire)) {
+                atomic_fetch_sub_explicit(&bst_->count, 1,
+                                          memory_order_release);
+                release_node(bst_, successor, false);
                 release_node(bst_, current, false);
                 return SUCCESS;
             }

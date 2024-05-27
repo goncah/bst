@@ -37,19 +37,10 @@ Options:\n\
 \t-c Set the BST type to ST, can be set with -a, -g and -l to test multiple BST types\n\
 \t-g Set the BST type to MT Coarse-Grained Lock, can be set with -a, -c and -l to test multiple BST types\n\
 \t-l Set the BST type to MT Fine-Grained Lock, can be set with -a, -c and -g to test multiple BST types\n\
-\t-m <#> Sets the memory order for atomic operations, default is 5 \"memory_order_seq_cst\", possible values are: \n\
-\t\t0 - memory_order_relaxed, \n\
-\t\t1 - memory_order_consume, \n\
-\t\t2 - memory_order_acquire, \n\
-\t\t3 - memory_order_release,\n\
-\t\t4 - memory_order_acq_rel,\n\
-\t\t5 - memory_order_seq_cst\n\
     \n";
 
     return msg;
 }
-
-memory_order mo = memory_order_seq_cst;
 
 // Robert Jenkins' 96 bit Mix Function
 // https://web.archive.org/web/20070111091013/http://www.concentric.net/~Ttwang/tech/inthash.htm
@@ -539,7 +530,7 @@ void bst_test(const int64_t operations, const size_t threads,
             }
             break;
         case AT:
-            bst = bst_at_new(mo, NULL);
+            bst = bst_at_new(NULL);
             bst__ = &bst;
             if (add_elements) {
                 for (int i = 0; i < operations; i++) {
@@ -675,33 +666,11 @@ int main(const int argc, char **argv) {
     opterr = 0;
 
     int c;
-    while ((c = getopt(argc, argv, "m:hn:o:t:r:s:glca")) != -1)
+    while ((c = getopt(argc, argv, "hn:o:t:r:s:glca")) != -1)
         switch (c) {
         case 'h':
             fprintf(stdout, "%s", usage());
             exit(0);
-        case 'm':
-            size_t len = strnlen(optarg, 2);
-            if (len == 2 || len != 1) {
-                PANIC("Invalid value for option -m");
-            }
-
-            char ws[2] = {0};
-
-            strncpy(ws, optarg, 1);
-
-            errno = 0;
-            intmax_t m = strtoimax(ws, NULL, 10);
-            if (m == UINTMAX_MAX && errno == ERANGE) {
-                PANIC("Invalid value for option -o");
-            }
-
-            if (m < 0 || m > 5) {
-                PANIC("Invalid value for option -o");
-            }
-
-            mo = m;
-            break;
         case 'n':
             if (str2int(&operations, optarg) != STR2LLINT_SUCCESS) {
                 PANIC("Invalid value for option -n");

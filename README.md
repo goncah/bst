@@ -51,13 +51,6 @@ Options:
 
 -l Set the BST type to MT Local RwLock, can be set with -a, -c and -g to test multiple BST types
 
--m <#> Sets the memory order for atomic operations, default is 5 "memory_order_seq_cst", possible values are: 
-   0 - memory_order_relaxed, 
-   1 - memory_order_consume, 
-   2 - memory_order_acquire, 
-   3 - memory_order_release,
-   4 - memory_order_acq_rel,
-   5 - memory_order_seq_cst
 
 ### Output
 #### Output is csv format with the following columns:
