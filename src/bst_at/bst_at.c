@@ -34,6 +34,8 @@ IN THE SOFTWARE.
 #include "../include/bst_common.h"
 #include "include/bst_at.h"
 
+#include <unistd.h>
+
 static bst_at_node_t *bst_at_node_new(const int64_t value) {
     bst_at_node_t *node = malloc(sizeof(bst_at_node_t));
 
@@ -49,7 +51,7 @@ static bst_at_node_t *bst_at_node_new(const int64_t value) {
 }
 
 // Helper function to load & increment node's rc
-static bst_at_node_t *load_node(bst_at_t *bst, bst_at_node_t *n) {
+static bst_at_node_t *load_node(bst_at_node_t *n) {
     bst_at_node_t *node = atomic_load_explicit(&n, memory_order_acquire);
 
     if (node &&
@@ -64,7 +66,7 @@ static bst_at_node_t *load_node(bst_at_t *bst, bst_at_node_t *n) {
 
 // Helper function to decrease a node's rc, if zero and free is TRUE, free the
 // node, else loop until no one else holds a ref.
-static void release_node(bst_at_t *bst, bst_at_node_t *n, bool f) {
+static void release_node(bst_at_node_t *n, bool f) {
     bst_at_node_t *node = atomic_load_explicit(&n, memory_order_acquire);
     if (node) {
         atomic_fetch_sub_explicit(&node->ref_count, 1, memory_order_release);
@@ -73,13 +75,14 @@ static void release_node(bst_at_t *bst, bst_at_node_t *n, bool f) {
         if (f && atomic_compare_exchange_strong_explicit(
                      &node->waiting_free, &c, true, memory_order_acq_rel,
                      memory_order_acquire)) {
-            do {
+            for (;;) {
                 if (!atomic_load_explicit(&node->ref_count,
                                           memory_order_acquire)) {
                     free(node);
                     return;
                 }
-            } while (f);
+                //sleep(1);
+            }
         }
     }
 }
@@ -109,12 +112,11 @@ BST_ERROR bst_at_add(bst_at_t **bst, const int64_t value) {
     bst_at_t *bst_ = *bst;
 
     bst_at_node_t *node = bst_at_node_new(value);
-    size_t retries = 0;
 
     if (node == NULL)
         return MALLOC_FAILURE;
 
-    bst_at_node_t *current;
+    bst_at_node_t *current, *parent = NULL;
 
     do {
         bst_at_node_t *expected = NULL;
@@ -125,21 +127,22 @@ BST_ERROR bst_at_add(bst_at_t **bst, const int64_t value) {
             return SUCCESS;
         }
 
-        bst_at_node_t *parent = NULL;
-        current = load_node(bst_, bst_->root);
+        current = load_node(bst_->root);
         while (current != NULL) {
             parent = current;
             if (value < current->value) {
                 bst_at_node_t *next = current->left;
-                release_node(bst_, current, false);
-                current = load_node(bst_, next);
+                current = load_node(next);
+                if (current)
+                    release_node(parent, false);
             } else if (value > current->value) {
                 bst_at_node_t *next = current->right;
-                release_node(bst_, current, false);
-                current = load_node(bst_, next);
+                current = load_node(next);
+                if (current)
+                    release_node(parent, false);
             } else {
                 free(node);
-                release_node(bst_, parent, false);
+                release_node(parent, false);
                 return VALUE_EXISTS;
             }
         }
@@ -151,7 +154,8 @@ BST_ERROR bst_at_add(bst_at_t **bst, const int64_t value) {
                     memory_order_acquire)) {
                 atomic_fetch_add_explicit(&bst_->count, 1,
                                           memory_order_release);
-                release_node(bst_, current, false);
+                release_node(parent, false);
+                release_node(current, false);
                 return SUCCESS;
             }
         } else {
@@ -160,16 +164,14 @@ BST_ERROR bst_at_add(bst_at_t **bst, const int64_t value) {
                     memory_order_acquire)) {
                 atomic_fetch_add_explicit(&bst_->count, 1,
                                           memory_order_release);
-                release_node(bst_, current, false);
+                release_node(parent, false);
+                release_node(current, false);
                 return SUCCESS;
             }
         }
-        retries++;
-    } while (retries < CAS_FAILED_RETRY_MAX);
-
-    free(node);
-    release_node(bst_, current, false);
-    return CAS_FAILED;
+        release_node(parent, false);
+        release_node(current, false);
+    } while (1);
 }
 
 BST_ERROR bst_at_search(bst_at_t **bst, const int64_t value) {
@@ -179,18 +181,18 @@ BST_ERROR bst_at_search(bst_at_t **bst, const int64_t value) {
 
     bst_at_t *bst_ = *bst;
 
-    bst_at_node_t *current = load_node(bst_, bst_->root);
+    bst_at_node_t *current = load_node(bst_->root);
     while (current != NULL) {
         if (compare(value, current->value) < 0) {
             bst_at_node_t *next = current->left;
-            release_node(bst_, current, false);
-            current = load_node(bst_, next);
+            release_node(current, false);
+            current = load_node(next);
         } else if (value > current->value) {
             bst_at_node_t *next = current->right;
-            release_node(bst_, current, false);
-            current = load_node(bst_, next);
+            release_node(current, false);
+            current = load_node(next);
         } else {
-            release_node(bst_, current, false);
+            release_node(current, false);
             return SUCCESS | VALUE_EXISTS;
         }
     }
@@ -205,20 +207,20 @@ BST_ERROR bst_at_min(bst_at_t **bst, int64_t *value) {
 
     bst_at_t *bst_ = *bst;
 
-    bst_at_node_t *current = load_node(bst_, bst_->root);
+    bst_at_node_t *current = load_node(bst_->root);
 
     if (current) {
         while (current->left != NULL) {
             bst_at_node_t *next = current->left;
-            release_node(bst_, current, false);
-            current = load_node(bst_, next);
+            release_node(current, false);
+            current = load_node(next);
         }
 
         if (value) {
             *value = current->value;
         }
 
-        release_node(bst_, current, false);
+        release_node(current, false);
         return SUCCESS;
     }
 
@@ -232,20 +234,20 @@ BST_ERROR bst_at_max(bst_at_t **bst, int64_t *value) {
 
     bst_at_t *bst_ = *bst;
 
-    bst_at_node_t *current = load_node(bst_, bst_->root);
+    bst_at_node_t *current = load_node(bst_->root);
 
     if (current) {
         while (current->right != NULL) {
             bst_at_node_t *next = current->right;
-            release_node(bst_, current, false);
-            current = load_node(bst_, next);
+            release_node(current, false);
+            current = load_node(next);
         }
 
         if (value) {
             *value = current->value;
         }
 
-        release_node(bst_, current, false);
+        release_node(current, false);
         return SUCCESS;
     }
 
@@ -268,16 +270,16 @@ BST_ERROR bst_at_node_count(bst_at_t **bst, size_t *value) {
     return SUCCESS;
 }
 
-static size_t bst_at_find_height(bst_at_t *bst, bst_at_node_t *r) {
-    bst_at_node_t *root = load_node(bst, r);
+static size_t bst_at_find_height(bst_at_node_t *r) {
+    bst_at_node_t *root = load_node(r);
 
     if (root == NULL) {
         return 0;
     }
 
-    const size_t left_height = bst_at_find_height(bst, root->left);
-    const size_t right_height = bst_at_find_height(bst, root->right);
-    release_node(bst, root, false);
+    const size_t left_height = bst_at_find_height(root->left);
+    const size_t right_height = bst_at_find_height(root->right);
+    release_node(root, false);
     return 1 + (left_height > right_height ? left_height : right_height);
 }
 
@@ -287,7 +289,7 @@ BST_ERROR bst_at_height(bst_at_t **bst, size_t *value) {
     }
 
     bst_at_t *bst_ = *bst;
-    const size_t h = bst_at_find_height(bst_, bst_->root);
+    const size_t h = bst_at_find_height(bst_->root);
 
     if (value) {
         *value = h;
@@ -296,9 +298,9 @@ BST_ERROR bst_at_height(bst_at_t **bst, size_t *value) {
     return SUCCESS;
 }
 
-static void count_nodes_at_level(bst_at_t *bst, bst_at_node_t *r,
-                                 const size_t level, size_t *count) {
-    bst_at_node_t *root = load_node(bst, r);
+static void count_nodes_at_level(bst_at_node_t *r, const size_t level,
+                                 size_t *count) {
+    bst_at_node_t *root = load_node(r);
 
     if (root == NULL) {
         return;
@@ -307,11 +309,11 @@ static void count_nodes_at_level(bst_at_t *bst, bst_at_node_t *r,
     if (level == 0) {
         (*count)++;
     } else {
-        count_nodes_at_level(bst, root->left, level - 1, count);
-        count_nodes_at_level(bst, root->right, level - 1, count);
+        count_nodes_at_level(root->left, level - 1, count);
+        count_nodes_at_level(root->right, level - 1, count);
     }
 
-    release_node(bst, root, false);
+    release_node(root, false);
 }
 
 BST_ERROR bst_at_width(bst_at_t **bst, size_t *value) {
@@ -320,13 +322,13 @@ BST_ERROR bst_at_width(bst_at_t **bst, size_t *value) {
     }
 
     bst_at_t *bst_ = *bst;
-    const size_t height = bst_at_find_height(bst_, bst_->root);
-    bst_at_node_t *root = load_node(bst_, bst_->root);
+    const size_t height = bst_at_find_height(bst_->root);
+    bst_at_node_t *root = load_node(bst_->root);
     size_t max_width = 0;
 
     for (size_t level = 0; level <= height; level++) {
         size_t count = 0;
-        count_nodes_at_level(bst_, root, level, &count);
+        count_nodes_at_level(root, level, &count);
         if (count > max_width) {
             max_width = count;
         }
@@ -352,22 +354,21 @@ BST_ERROR bst_at_delete(bst_at_t **bst, const int64_t value) {
 
     bst_at_t *bst_ = *bst;
 
-    size_t retries = 0;
     do {
-        bst_at_node_t *current = load_node(bst_, bst_->root);
+        bst_at_node_t *current = load_node(bst_->root);
         bst_at_node_t **link = &bst_->root;
 
         while (current != NULL && current->value != value) {
             if (compare(value, current->value) < 0) {
                 link = &current->left;
                 bst_at_node_t *next = current->left;
-                release_node(bst_, current, false);
-                current = load_node(bst_, next);
+                release_node(current, false);
+                current = load_node(next);
             } else {
                 link = &current->right;
                 bst_at_node_t *next = current->right;
-                release_node(bst_, current, false);
-                current = load_node(bst_, next);
+                release_node(current, false);
+                current = load_node(next);
             }
         }
 
@@ -380,20 +381,20 @@ BST_ERROR bst_at_delete(bst_at_t **bst, const int64_t value) {
             if (atomic_compare_exchange_strong_explicit(link, &current, child,
                                                         memory_order_acq_rel,
                                                         memory_order_acquire)) {
-                release_node(bst_, current, true);
+                release_node(current, true);
                 atomic_fetch_sub_explicit(&bst_->count, 1,
                                           memory_order_release);
                 return SUCCESS;
             }
         } else {
-            bst_at_node_t *successor = load_node(bst_, current->right);
+            bst_at_node_t *successor = load_node(current->right);
             bst_at_node_t **successor_link = &current->right;
 
             while (successor->left != NULL) {
                 successor_link = &successor->left;
                 bst_at_node_t *next = successor->left;
-                release_node(bst_, successor, false);
-                successor = load_node(bst_, next);
+                release_node(successor, false);
+                successor = load_node(next);
             }
 
             current->value = successor->value;
@@ -402,32 +403,29 @@ BST_ERROR bst_at_delete(bst_at_t **bst, const int64_t value) {
                     memory_order_acq_rel, memory_order_acquire)) {
                 atomic_fetch_sub_explicit(&bst_->count, 1,
                                           memory_order_release);
-                release_node(bst_, successor, false);
-                release_node(bst_, current, false);
+                release_node(successor, true);
+                release_node(current, false);
                 return SUCCESS;
             }
 
-            release_node(bst_, current, false);
+            release_node(successor, false);
+            release_node(current, false);
         }
-
-        retries++;
-    } while (retries < CAS_FAILED_RETRY_MAX);
-
-    return CAS_FAILED;
+    } while (1);
 }
 
 BST_ERROR bst_at_rebalance(bst_at_t **bst) { return 0; }
 
-static void bst_at_node_free(bst_at_t *bst, bst_at_node_t *root) {
+static void bst_at_node_free(bst_at_node_t *root) {
     if (root == NULL) {
         return;
     }
 
-    bst_at_node_free(bst, load_node(bst, root->left));
+    bst_at_node_free(root->left);
 
-    bst_at_node_free(bst, load_node(bst, root->right));
+    bst_at_node_free(root->right);
 
-    release_node(bst, root, true);
+    free(root);
 }
 
 BST_ERROR bst_at_free(bst_at_t **bst) {
@@ -439,7 +437,7 @@ BST_ERROR bst_at_free(bst_at_t **bst) {
     *bst = NULL;
 
     atomic_init(&bst_->count, 0);
-    bst_at_node_free(bst_, bst_->root);
+    bst_at_node_free(bst_->root);
 
     free(bst_);
 

@@ -54,10 +54,6 @@ typedef struct bst_at {
     bst_at_node_t *root;
 } bst_at_t;
 
-// While the bst is using _strong CAS operations it might still fail, these are
-// the max retries we perform before returning.
-#define CAS_FAILED_RETRY_MAX 100
-
 // Prototypes
 /**
  * Allocates memory for a new BST MT Local Mutex returning the pointer to it.
