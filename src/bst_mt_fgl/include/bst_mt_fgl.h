@@ -41,7 +41,7 @@ typedef struct bst_mt_fgl_node {
     int64_t value;
     struct bst_mt_fgl_node *left;
     struct bst_mt_fgl_node *right;
-    pthread_mutex_t rwl;
+    pthread_mutex_t mtx;
 } bst_mt_fgl_node_t;
 
 /**
@@ -49,9 +49,9 @@ typedef struct bst_mt_fgl_node {
  */
 typedef struct bst_mt_fgl {
     bst_mt_fgl_node_t *root;
-    pthread_mutex_t rwl;
+    pthread_mutex_t mtx;
     size_t count;
-    pthread_mutex_t crwl;
+    pthread_mutex_t cmtx;
 } bst_mt_fgl_t;
 
 // Prototypes
