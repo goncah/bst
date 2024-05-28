@@ -794,7 +794,6 @@ BST_ERROR bst_mt_fgl_delete(bst_mt_fgl_t **bst, const int64_t value) {
                 bst_mt_fgl_node_t *curr_parent = curr;
                 bst_mt_fgl_node_t *curr_min = curr->right;
                 pthread_mutex_lock(&curr_min->rwl);
-                pthread_mutex_unlock(&parent->rwl);
 
                 for (;;) {
                     if (curr_min->left == NULL) {
@@ -812,6 +811,7 @@ BST_ERROR bst_mt_fgl_delete(bst_mt_fgl_t **bst, const int64_t value) {
 
                         free(curr_min);
                         pthread_mutex_unlock(&curr->rwl);
+                        pthread_mutex_unlock(&parent->rwl);
                         pthread_mutex_lock(&bst_->crwl);
                         bst_->count--;
                         pthread_mutex_unlock(&bst_->crwl);
@@ -821,6 +821,7 @@ BST_ERROR bst_mt_fgl_delete(bst_mt_fgl_t **bst, const int64_t value) {
 
                     // If we haven't found the minimum element, continue
                     // traversing.
+                    pthread_mutex_unlock(&parent->rwl);
                     pthread_mutex_unlock(&curr_min->left->rwl);
                     if (curr_parent != curr) {
                         pthread_mutex_unlock(&curr_parent->rwl);
