@@ -762,9 +762,8 @@ BST_ERROR bst_mt_fgl_delete(bst_mt_fgl_t **bst, const int64_t value) {
                     parent->right = NULL;
                 }
 
-                if (parent) {
-                    pthread_mutex_unlock(&parent->mtx);
-                }
+                pthread_mutex_unlock(&curr->mtx);
+                pthread_mutex_unlock(&parent->mtx);
                 free(curr);
                 pthread_mutex_lock(&bst_->cmtx);
                 bst_->count--;
