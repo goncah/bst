@@ -342,15 +342,15 @@ void *bst_st_test_read_write_thread(void *vargp) {
 
     for (size_t i = 0; i < operations; i++) {
 
-        const int prob = data->write_prob == 0   ? 0
+        const int prob = i < 3                   ? 1
+                         : data->write_prob == 0 ? 0
                          : data->write_prob == 1 ? 1
                          : rand_r(&seed) < (int)(data->write_prob * RAND_MAX)
                              ? 1
                              : 0;
 
-        const int op = i < 3 ? 0 : rand_r(&seed) % 7;
-
         if (prob) {
+            const int op = i < 3 ? 0 : rand_r(&seed) % 2;
             if (op == 0) {
                 if ((data->add((const void **)&data->bst, values[start + i]) &
                      SUCCESS) != SUCCESS) {
@@ -369,7 +369,8 @@ void *bst_st_test_read_write_thread(void *vargp) {
                 metrics->deletes++;
             }
         } else {
-            if (op == 2) {
+            const int op = rand_r(&seed) % 5;
+            if (op == 0) {
                 const BST_ERROR be =
                     data->search((const void **)&data->bst,
                                  values[start + rand_r(&seed) % i]);
@@ -380,7 +381,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     PANIC("Failed to search element");
                 }
                 metrics->searches++;
-            } else if (op == 3) {
+            } else if (op == 1) {
                 const BST_ERROR be = data->min((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
                     (be & BST_EMPTY) != BST_EMPTY &&
@@ -389,14 +390,14 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     PANIC("Failed to find BST min");
                 }
                 metrics->mins++;
-            } else if (op == 4) {
+            } else if (op == 2) {
                 const BST_ERROR be = data->max((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
                     (be & BST_EMPTY) != BST_EMPTY) {
                     PANIC("Failed to find BST max");
                 }
                 metrics->maxs++;
-            } else if (op == 5) {
+            } else if (op == 3) {
                 const BST_ERROR be =
                     data->height((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
