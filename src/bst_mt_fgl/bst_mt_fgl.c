@@ -446,17 +446,18 @@ BST_ERROR bst_mt_fgl_width(bst_mt_fgl_t **bst, size_t *value) {
 
         while (level_node_count > 0) {
             bst_mt_fgl_node_t *current_node = dequeue(&q);
-
-            if (current_node->left != NULL) {
-                pthread_mutex_lock(&current_node->left->mtx);
-                enqueue(&q, current_node->left);
+            if (current_node) {
+                if (current_node->left != NULL) {
+                    pthread_mutex_lock(&current_node->left->mtx);
+                    enqueue(&q, current_node->left);
+                }
+                if (current_node->right != NULL) {
+                    pthread_mutex_lock(&current_node->right->mtx);
+                    enqueue(&q, current_node->right);
+                }
+                pthread_mutex_unlock(&current_node->mtx);
+                level_node_count--;
             }
-            if (current_node->right != NULL) {
-                pthread_mutex_lock(&current_node->right->mtx);
-                enqueue(&q, current_node->right);
-            }
-            pthread_mutex_unlock(&current_node->mtx);
-            level_node_count--;
         }
     }
 
@@ -867,7 +868,7 @@ void bst_mt_lrwl_node_free(bst_mt_fgl_node_t *root) {
 }
 
 bst_mt_fgl_node_t *lrwl_array_to_bst(int64_t *arr, const int64_t start,
-                                      const int64_t end, BST_ERROR *err) {
+                                     const int64_t end, BST_ERROR *err) {
     if (start > end) {
         if (err != NULL) {
             *err = SUCCESS;
