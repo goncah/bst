@@ -228,21 +228,34 @@ void set_at_functions(test_bst_s *t) {
     t->rebalance = (BST_ERROR(*)(const void **))bst_at_rebalance;
 }
 
+void init_metrics(test_bst_metrics *metrics) {
+    metrics->deletes = 0;
+    metrics->heights = 0;
+    metrics->inserts = 0;
+    metrics->maxs = 0;
+    metrics->mins = 0;
+    metrics->rebalances = 0;
+    metrics->searches = 0;
+    metrics->widths = 0;
+}
+
 void *bst_st_test_insert_thread(void *vargp) {
     const test_bst_s *data = (test_bst_s *)vargp;
     const size_t operations = data->operations;
     const size_t start = data->start;
     const int64_t *values = data->values;
-    test_bst_metrics *metrics = data->metrics;
+    test_bst_metrics metrics;
+    init_metrics(&metrics);
 
     for (size_t i = 0; i < operations; i++) {
         if ((data->add((const void **)&data->bst, values[start + i]) &
              SUCCESS) != SUCCESS) {
             PANIC("Failed to add element");
         }
-        metrics->inserts++;
+        metrics.inserts++;
     }
 
+    *data->metrics = metrics;
     return NULL;
 }
 
@@ -251,7 +264,8 @@ void *bst_st_test_write_thread(void *vargp) {
     const size_t operations = data->operations;
     const size_t start = data->start;
     const int64_t *values = data->values;
-    test_bst_metrics *metrics = data->metrics;
+    test_bst_metrics metrics;
+    init_metrics(&metrics);
 
     uint seed = mix(clock(), time(NULL), getpid());
 
@@ -263,7 +277,7 @@ void *bst_st_test_write_thread(void *vargp) {
                  SUCCESS) != SUCCESS) {
                 PANIC("Failed to add element");
             }
-            metrics->inserts++;
+            metrics.inserts++;
         } else {
             const BST_ERROR be = data->delete (
                 (const void **)&data->bst, values[start + rand_r(&seed) % i]);
@@ -272,9 +286,11 @@ void *bst_st_test_write_thread(void *vargp) {
                 (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to delete element");
             }
-            metrics->deletes++;
+            metrics.deletes++;
         }
     }
+
+    *data->metrics = metrics;
 
     return NULL;
 }
@@ -284,7 +300,8 @@ void *bst_st_test_read_thread(void *vargp) {
     const size_t operations = data->operations;
     const size_t start = data->start;
     const int64_t *values = data->values;
-    test_bst_metrics *metrics = data->metrics;
+    test_bst_metrics metrics;
+    init_metrics(&metrics);
 
     uint seed = mix(clock(), time(NULL), getpid());
 
@@ -300,19 +317,19 @@ void *bst_st_test_read_thread(void *vargp) {
                 (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
                 PANIC("Failed to search element");
             }
-            metrics->searches++;
+            metrics.searches++;
         } else if (op == 1) {
             const BST_ERROR be = data->min((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST min");
             }
-            metrics->mins++;
+            metrics.mins++;
         } else /*if (op == 2)*/ {
             const BST_ERROR be = data->max((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST max");
             }
-            metrics->maxs++;
+            metrics.maxs++;
         }
             // Below operations removed as they "monopolize" the executions
         /*else if (op == 3) {
@@ -330,6 +347,7 @@ void *bst_st_test_read_thread(void *vargp) {
         }*/
     }
 
+    *data->metrics = metrics;
     return NULL;
 }
 
@@ -338,7 +356,8 @@ void *bst_st_test_read_write_thread(void *vargp) {
     const size_t operations = data->operations;
     const size_t start = data->start;
     const int64_t *values = data->values;
-    test_bst_metrics *metrics = data->metrics;
+    test_bst_metrics metrics;
+    init_metrics(&metrics);
 
     uint seed = mix(clock(), time(NULL), getpid());
 
@@ -358,7 +377,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                      SUCCESS) != SUCCESS) {
                     PANIC("Failed to add element");
                 }
-                metrics->inserts++;
+                metrics.inserts++;
             } else {
                 const BST_ERROR be =
                     data->delete ((const void **)&data->bst,
@@ -368,7 +387,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     (be & BST_EMPTY) != BST_EMPTY) {
                     PANIC("Failed to delete element");
                 }
-                metrics->deletes++;
+                metrics.deletes++;
             }
         } else {
             const int op = rand_r(&seed) % 3; //5;
@@ -382,7 +401,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
                     PANIC("Failed to search element");
                 }
-                metrics->searches++;
+                metrics.searches++;
             } else if (op == 1) {
                 const BST_ERROR be = data->min((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
@@ -391,14 +410,14 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     (be & VALUE_NONEXISTENT) != VALUE_NONEXISTENT) {
                     PANIC("Failed to find BST min");
                 }
-                metrics->mins++;
+                metrics.mins++;
             } else /*if (op == 2)*/ {
                 const BST_ERROR be = data->max((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
                     (be & BST_EMPTY) != BST_EMPTY) {
                     PANIC("Failed to find BST max");
                 }
-                metrics->maxs++;
+                metrics.maxs++;
             }
 
             // Below operations removed as they "monopolize" the executions
@@ -422,6 +441,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
         }
     }
 
+    *data->metrics = metrics;
     return NULL;
 }
 
