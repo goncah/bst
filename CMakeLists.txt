@@ -4,7 +4,7 @@ project(bst VERSION 0.0.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
-set(CMAKE_C_FLAGS_RELEASE "-O1 -Wall -Werror") # remove default -O3 which slows down LRWL version
+set(CMAKE_C_FLAGS_RELEASE "-O1 -Wall -Werror") # set optimization level to O1, otherwise gcc removes the load simulation
 set(CPACK_PACKAGE_CONTACT "hfdsgoncalves@gmail.com")
 
 if (NOT CMAKE_BUILD_TYPE)

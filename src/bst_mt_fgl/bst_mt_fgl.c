@@ -104,7 +104,7 @@ BST_ERROR bst_mt_fgl_add(bst_mt_fgl_t **bst, const int64_t value) {
     pthread_mutex_unlock(&bst_->mtx);
 
     while (current != NULL) {
-        if (value < current->value) {
+        if (compare(value, current->value) < 0) {
             if (current->left == NULL) {
                 current->left = malloc(sizeof(bst_mt_fgl_node_t));
                 current->left->value = value;
@@ -124,7 +124,7 @@ BST_ERROR bst_mt_fgl_add(bst_mt_fgl_t **bst, const int64_t value) {
             bst_mt_fgl_node_t *t = current;
             current = current->left;
             pthread_mutex_unlock(&t->mtx);
-        } else if (value > current->value) {
+        } else if (compare(value, current->value) > 0) {
             if (current->right == NULL) {
                 current->right = malloc(sizeof(bst_mt_fgl_node_t));
                 current->right->value = value;
