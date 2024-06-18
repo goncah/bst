@@ -289,7 +289,7 @@ void *bst_st_test_read_thread(void *vargp) {
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (size_t i = 0; i < operations; i++) {
-        const int op = rand_r(&seed) % 5;
+        const int op = rand_r(&seed) % 3; // 5;
 
         if (op == 0) {
             const BST_ERROR be =
@@ -307,13 +307,15 @@ void *bst_st_test_read_thread(void *vargp) {
                 PANIC("Failed to find BST min");
             }
             metrics->mins++;
-        } else if (op == 2) {
+        } else /*if (op == 2)*/ {
             const BST_ERROR be = data->max((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST max");
             }
             metrics->maxs++;
-        } else if (op == 3) {
+        }
+            // Below operations removed as they "monopolize" the executions
+        /*else if (op == 3) {
             const BST_ERROR be = data->height((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST height");
@@ -325,7 +327,7 @@ void *bst_st_test_read_thread(void *vargp) {
                 PANIC("Failed to find BST height");
             }
             metrics->widths++;
-        }
+        }*/
     }
 
     return NULL;
@@ -369,7 +371,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                 metrics->deletes++;
             }
         } else {
-            const int op = rand_r(&seed) % 5;
+            const int op = rand_r(&seed) % 3; //5;
             if (op == 0) {
                 const BST_ERROR be =
                     data->search((const void **)&data->bst,
@@ -390,14 +392,17 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     PANIC("Failed to find BST min");
                 }
                 metrics->mins++;
-            } else if (op == 2) {
+            } else /*if (op == 2)*/ {
                 const BST_ERROR be = data->max((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
                     (be & BST_EMPTY) != BST_EMPTY) {
                     PANIC("Failed to find BST max");
                 }
                 metrics->maxs++;
-            } else if (op == 3) {
+            }
+
+            // Below operations removed as they "monopolize" the executions
+            /*else if (op == 3) {
                 const BST_ERROR be =
                     data->height((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
@@ -413,7 +418,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     PANIC("Failed to find BST height");
                 }
                 metrics->widths++;
-            }
+            }*/
         }
     }
 
