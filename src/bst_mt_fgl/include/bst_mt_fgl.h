@@ -158,80 +158,6 @@ BST_ERROR bst_mt_fgl_max(bst_mt_fgl_t **bst, int64_t *value);
 BST_ERROR bst_mt_fgl_node_count(bst_mt_fgl_t **bst, size_t *value);
 
 /**
- * Calculates and places in value the BST height - Thread safe,
- * no write operations are permitted during search.
- *
- * @param bst   the BST to calculate the height.
- * @param value pointer to store the BST height, memory must be pre-allocated.
- * @return
- * BST_NULL                 - when provided bst pointer is null.
- *
- * BST_EMPTY                - when provided bst is empty.
- *
- * SUCCESS                  - height is stored in value, if value not NULL.
- */
-BST_ERROR bst_mt_fgl_height(bst_mt_fgl_t **bst, size_t *value);
-
-/**
- * Calculates and places in value the BST width - Thread safe,
- * no write operations are permitted during search.
- *
- * @param bst   the BST to calculate the width.
- * @param value pointer to store the BST width, memory must be pre-allocated.
- * @return
- * BST_NULL                 - when provided bst pointer is null.
- *
- * BST_EMPTY                - when provided bst is empty.
- *
- * SUCCESS                  - width is stored in value, if value
- *                            not NULL.
- */
-BST_ERROR bst_mt_fgl_width(bst_mt_fgl_t **bst, size_t *value);
-
-/**
- * Traverse and print the BST nodes preorder - Thread safe,
- * no write operations are permitted during traverse.
- *
- * @param bst the BST to traverse
- * @return
- * BST_NULL                 - when provided bst pointer is null.
- *
- * BST_EMPTY                - when provided bst is empty.
- *
- *
- * SUCCESS                  - elements written to stdout in preorder.
- */
-BST_ERROR bst_mt_fgl_traverse_preorder(bst_mt_fgl_t **bst);
-
-/**
- * Traverse and print the BST nodes inorder - Thread safe,
- * no write operations are permitted during traverse.
- *
- * @param bst the BST to traverse
- * @return
- * BST_NULL                 - when provided bst pointer is null.
- *
- * BST_EMPTY                - when provided bst is empty.
- *
- * SUCCESS                  - elements written to stdout in inorder.
- */
-BST_ERROR bst_mt_fgl_traverse_inorder(bst_mt_fgl_t **bst);
-
-/**
- * Traverse and print the BST nodes postorder - Thread safe,
- * no write operations are permitted during traverse.
- *
- * @param bst the BST to traverse
- * @return
- * BST_NULL                 - when provided bst pointer is null.
- *
- * BST_EMPTY                - when provided bst is empty.
- *
- * SUCCESS                  - elements written to stdout in postorder.
- */
-BST_ERROR bst_mt_fgl_traverse_postorder(bst_mt_fgl_t **bst);
-
-/**
  * Attempt to find and delete value from bst - Thread safe,
  * no write operations are permitted during deletion.
  *
@@ -247,23 +173,6 @@ BST_ERROR bst_mt_fgl_traverse_postorder(bst_mt_fgl_t **bst);
  * SUCCESS                 - value removed.
  */
 BST_ERROR bst_mt_fgl_delete(bst_mt_fgl_t **bst, int64_t value);
-
-/**
- * Height rebalance BST ST.
- *
- * @param bst the bst to rebalance.
- * @return
- * BST_NULL                 - when provided bst pointer is null.
- *
- * BST_EMPTY                - when provided bst is empty.
- *
- * MALLOC_FAILURE           - when malloc() fails. can happen for when
- *  allocating the array to store values during rebalance or when creating a new
- *  node. BST and all nodes are freed.
- *
- * SUCCESS                   - BST rebalanced.
- */
-BST_ERROR bst_mt_fgl_rebalance(bst_mt_fgl_t **bst);
 
 /**
  * Frees a BST.

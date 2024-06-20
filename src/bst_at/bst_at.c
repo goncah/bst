@@ -280,30 +280,6 @@ BST_ERROR bst_at_node_count(bst_at_t **bst, size_t *value) {
     return SUCCESS;
 }
 
-BST_ERROR bst_at_height(bst_at_t **bst, size_t *value) {
-    // if (bst == NULL || *bst == NULL) {
-    //     return BST_EMPTY;
-    // }
-    //
-    // bst_at_t *bst_ = *bst;
-    return 0;
-}
-
-BST_ERROR bst_at_width(bst_at_t **bst, size_t *value) {
-    // if (bst == NULL || *bst == NULL) {
-    //     return BST_EMPTY;
-    // }
-    //
-    // bst_at_t *bst_ = *bst;
-    return 0;
-}
-
-BST_ERROR bst_at_traverse_preorder(bst_at_t **bst) { return 0; }
-
-BST_ERROR bst_at_traverse_inorder(bst_at_t **bst) { return 0; }
-
-BST_ERROR bst_at_traverse_postorder(bst_at_t **bst) { return 0; }
-
 static bool bst_replace_node(bst_at_t *bst, bst_at_node_t *parent,
                              bst_at_node_t *current, bst_at_node_t *new_node) {
     if (parent == NULL) {
@@ -408,8 +384,6 @@ BST_ERROR bst_at_delete(bst_at_t **bst, const int64_t value) {
         }
     }
 }
-
-BST_ERROR bst_at_rebalance(bst_at_t **bst) { return 0; }
 
 static void bst_at_free_node(bst_at_node_t *root) {
     if (root) {

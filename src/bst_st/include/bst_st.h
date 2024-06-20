@@ -124,76 +124,6 @@ BST_ERROR bst_st_min(bst_st_t **bst, int64_t *value);
 BST_ERROR bst_st_max(bst_st_t **bst, int64_t *value);
 
 /**
- * Calculates and places in value the BST height.
- *
- * @param bst   the BST to calculate the height.
- * @param value pointer to store the BST height, memory must be pre-allocated.
- * @return
- * BST_NULL  - when provided bst pointer is null.
- *
- * BST_EMPTY - when provided bst is empty.
- *
- * SUCCESS   - height is placed in value if not NULL.
- */
-BST_ERROR bst_st_height(bst_st_t **bst, size_t *value);
-
-/**
- * Calculates and places in value the BST width.
- *
- * @param bst   the BST to calculate the width.
- * @param value pointer to store the BST width, memory must be pre-allocated.
- * @return
- * BST_NULL       - when provided bst pointer is null.
- *
- * MALLOC_FAILURE - a queue is allocated to traverse the tree, this error is
- *  returned when malloc() fails.
- *
- * BST_EMPTY      - when provided bst is empty.
- *
- * SUCCESS        - height is placed in value if not NULL.
- */
-BST_ERROR bst_st_width(bst_st_t **bst, size_t *value);
-
-/**
- * Traverse and print the BST nodes preorder.
- *
- * @param bst the BST to traverse.
- * @return
- * BST_NULL  - when provided bst pointer is null.
- *
- * BST_EMPTY - when provided bst is empty.
- *
- * SUCCESS   - elements are written to stdout.
- */
-BST_ERROR bst_st_traverse_preorder(bst_st_t **bst);
-
-/**
- * Traverse and print the BST nodes inorder.
- *
- * @param bst the BST to traverse.
- * @return
- * BST_NULL  - when provided bst pointer is null.
- *
- * BST_EMPTY - when provided bst is empty.
- *
- * SUCCESS   - elements are written to stdout.
- */
-BST_ERROR bst_st_traverse_inorder(bst_st_t **bst);
-
-/**
- * Traverse and print the BST nodes postorder.
- *
- * @param bst the BST to traverse.
- * @return
- * BST_NULL  - when provided bst pointer is null.
- *
- * BST_EMPTY - when provided bst is empty.
- *
- * SUCCESS   - elements are written to stdout.
- */
-BST_ERROR bst_st_traverse_postorder(bst_st_t **bst);
-
-/**
  * Attempt to find and delete value from bst.
  *
  * @param bst   the BST to find and delete the value from.
@@ -208,23 +138,6 @@ BST_ERROR bst_st_traverse_postorder(bst_st_t **bst);
  * SUCCESS           - value found and deleted.
  */
 BST_ERROR bst_st_delete(bst_st_t **bst, int64_t value);
-
-/**
- * Height rebalance BST ST.
- *
- * @param bst the bst to rebalance.
- * @return
- * BST_NULL       - when provided bst pointer is null.
- *
- * BST_EMPTY      - when provided bst is empty.
- *
- * MALLOC_FAILURE - when malloc() fails. can happen for when allocating the
- *  array to store values during rebalance or when creating a new node. BST and
- *  all nodes are freed.
- *
- * SUCCESS        - BST rebalanced.
- */
-BST_ERROR bst_st_rebalance(bst_st_t **bst);
 
 /**
  * Frees a BST.

@@ -178,10 +178,7 @@ typedef struct test_bst_s {
     BST_ERROR (*search)(const void **, int64_t);
     BST_ERROR (*min)(const void **, int64_t *);
     BST_ERROR (*max)(const void **, int64_t *);
-    BST_ERROR (*height)(const void **, int64_t *);
-    BST_ERROR (*width)(const void **, int64_t *);
     BST_ERROR (*delete)(const void **, int64_t);
-    BST_ERROR (*rebalance)(const void **);
 } test_bst_s;
 
 void set_st_functions(test_bst_s *t) {
@@ -189,10 +186,7 @@ void set_st_functions(test_bst_s *t) {
     t->search = (BST_ERROR(*)(const void **, int64_t))bst_st_search;
     t->min = (BST_ERROR(*)(const void **, int64_t *))bst_st_min;
     t->max = (BST_ERROR(*)(const void **, int64_t *))bst_st_max;
-    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_st_height;
-    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_st_width;
     t->delete = (BST_ERROR(*)(const void **, int64_t))bst_st_delete;
-    t->rebalance = (BST_ERROR(*)(const void **))bst_st_rebalance;
 }
 
 void set_mt_cgl_functions(test_bst_s *t) {
@@ -200,10 +194,7 @@ void set_mt_cgl_functions(test_bst_s *t) {
     t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_cgl_search;
     t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_min;
     t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_max;
-    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_height;
-    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_cgl_width;
     t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_cgl_delete;
-    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_cgl_rebalance;
 }
 
 void set_mt_fgl_functions(test_bst_s *t) {
@@ -211,10 +202,7 @@ void set_mt_fgl_functions(test_bst_s *t) {
     t->search = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_search;
     t->min = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_min;
     t->max = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_max;
-    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_height;
-    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_mt_fgl_width;
     t->delete = (BST_ERROR(*)(const void **, int64_t))bst_mt_fgl_delete;
-    t->rebalance = (BST_ERROR(*)(const void **))bst_mt_fgl_rebalance;
 }
 
 void set_at_functions(test_bst_s *t) {
@@ -222,10 +210,7 @@ void set_at_functions(test_bst_s *t) {
     t->search = (BST_ERROR(*)(const void **, int64_t))bst_at_search;
     t->min = (BST_ERROR(*)(const void **, int64_t *))bst_at_min;
     t->max = (BST_ERROR(*)(const void **, int64_t *))bst_at_max;
-    t->height = (BST_ERROR(*)(const void **, int64_t *))bst_at_height;
-    t->width = (BST_ERROR(*)(const void **, int64_t *))bst_at_width;
     t->delete = (BST_ERROR(*)(const void **, int64_t))bst_at_delete;
-    t->rebalance = (BST_ERROR(*)(const void **))bst_at_rebalance;
 }
 
 void init_metrics(test_bst_metrics *metrics) {
@@ -306,7 +291,7 @@ void *bst_st_test_read_thread(void *vargp) {
     uint seed = mix(clock(), time(NULL), getpid());
 
     for (size_t i = 0; i < operations; i++) {
-        const int op = rand_r(&seed) % 3; // 5;
+        const int op = rand_r(&seed) % 3;
 
         if (op == 0) {
             const BST_ERROR be =
@@ -324,27 +309,13 @@ void *bst_st_test_read_thread(void *vargp) {
                 PANIC("Failed to find BST min");
             }
             metrics.mins++;
-        } else /*if (op == 2)*/ {
+        } else {
             const BST_ERROR be = data->max((const void **)&data->bst, NULL);
             if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
                 PANIC("Failed to find BST max");
             }
             metrics.maxs++;
         }
-            // Below operations removed as they "monopolize" the executions
-        /*else if (op == 3) {
-            const BST_ERROR be = data->height((const void **)&data->bst, NULL);
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to find BST height");
-            }
-            metrics->heights++;
-        } else {
-            const BST_ERROR be = data->width((const void **)&data->bst, NULL);
-            if ((be & SUCCESS) != SUCCESS && (be & BST_EMPTY) != BST_EMPTY) {
-                PANIC("Failed to find BST height");
-            }
-            metrics->widths++;
-        }*/
     }
 
     *data->metrics = metrics;
@@ -390,7 +361,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                 metrics.deletes++;
             }
         } else {
-            const int op = rand_r(&seed) % 3; //5;
+            const int op = rand_r(&seed) % 3;
             if (op == 0) {
                 const BST_ERROR be =
                     data->search((const void **)&data->bst,
@@ -411,7 +382,7 @@ void *bst_st_test_read_write_thread(void *vargp) {
                     PANIC("Failed to find BST min");
                 }
                 metrics.mins++;
-            } else /*if (op == 2)*/ {
+            } else {
                 const BST_ERROR be = data->max((const void **)&data->bst, NULL);
                 if ((be & SUCCESS) != SUCCESS &&
                     (be & BST_EMPTY) != BST_EMPTY) {
@@ -419,25 +390,6 @@ void *bst_st_test_read_write_thread(void *vargp) {
                 }
                 metrics.maxs++;
             }
-
-            // Below operations removed as they "monopolize" the executions
-            /*else if (op == 3) {
-                const BST_ERROR be =
-                    data->height((const void **)&data->bst, NULL);
-                if ((be & SUCCESS) != SUCCESS &&
-                    (be & BST_EMPTY) != BST_EMPTY) {
-                    PANIC("Failed to find BST height");
-                }
-                metrics->heights++;
-            } else {
-                const BST_ERROR be =
-                    data->width((const void **)&data->bst, NULL);
-                if ((be & SUCCESS) != SUCCESS &&
-                    (be & BST_EMPTY) != BST_EMPTY) {
-                    PANIC("Failed to find BST height");
-                }
-                metrics->widths++;
-            }*/
         }
     }
 
@@ -596,32 +548,24 @@ void bst_test(const int64_t operations, const size_t threads,
             nc = ((bst_st_t *)bst)->count;
             bst_st_min((bst_st_t **)bst__, &min);
             bst_st_max((bst_st_t **)bst__, &max);
-            bst_st_height((bst_st_t **)bst__, &height);
-            bst_st_width((bst_st_t **)bst__, &width);
             bst_st_free((bst_st_t **)bst__);
             break;
         case CGL:
             bst_mt_cgl_node_count((bst_mt_cgl_t **)bst__, &nc);
             bst_mt_cgl_min((bst_mt_cgl_t **)bst__, &min);
             bst_mt_cgl_max((bst_mt_cgl_t **)bst__, &max);
-            bst_mt_cgl_height((bst_mt_cgl_t **)bst__, &height);
-            bst_mt_cgl_width((bst_mt_cgl_t **)bst__, &width);
             bst_mt_cgl_free((bst_mt_cgl_t **)bst__);
             break;
         case FGL:
             bst_mt_fgl_node_count((bst_mt_fgl_t **)bst__, &nc);
             bst_mt_fgl_min((bst_mt_fgl_t **)bst__, &min);
             bst_mt_fgl_max((bst_mt_fgl_t **)bst__, &max);
-            bst_mt_fgl_height((bst_mt_fgl_t **)bst__, &height);
-            bst_mt_fgl_width((bst_mt_fgl_t **)bst__, &width);
             bst_mt_fgl_free((bst_mt_fgl_t **)bst__);
             break;
         case AT:
             bst_at_node_count((bst_at_t **)bst__, &nc);
             bst_at_min((bst_at_t **)bst__, &min);
             bst_at_max((bst_at_t **)bst__, &max);
-            bst_at_height((bst_at_t **)bst__, &height);
-            bst_at_width((bst_at_t **)bst__, &width);
             bst_at_free((bst_at_t **)bst__);
             break;
         }
